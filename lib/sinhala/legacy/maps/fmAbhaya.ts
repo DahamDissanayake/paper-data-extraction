@@ -73,6 +73,47 @@ const tokens: Record<string, string> = {
   // flushed short-e prefix vowel, or degrades to plain aa-kaara (ා)
   // otherwise. See convert.ts for the LONG_AA_MARKER mechanism.
   'da': '\uE000', // da ligature — resolves to long-o (ෝ) after a flushed short-e prefix, else degrades to plain ා
+
+  // --- Added investigating a real garbled-output bug report on page 1's
+  // header line (raw: `Y%S ,xldj ms<sn| f;dr;=re i|yka jk ol=Kq bkaÈhdfõ §
+  // rÑ; .%ka:hla jkafka`). The 24 tokens above were derived solely from the
+  // cherry-picked golden words in test/sinhala/convert.test.ts, which never
+  // exercised these bytes; real running prose (headers/instructions) does.
+  // Each pair below was derived the same way as the tokens above — aligning
+  // an unmapped word against already-verified tokens plus the real Sinhala
+  // word the result has to be — and cross-checked against 3-6 separate,
+  // unrelated occurrences in the real page-1 fixture
+  // (test/fixtures/pg1.items.json) before being trusted, not invented from
+  // memory of the keyboard layout:
+  //   `ms<sn|` -> pilibanda ("regarding"), `i|yka` -> sandahan
+  //     ("mentioned") confirm `|` -> the "nda" conjunct letter, twice,
+  //     independently.
+  //   `ol=Kq` -> dakunu ("south"), `merKs` -> purani ("old/ancient"),
+  //     `,l=K` -> lakuna ("a mark") confirm `K` -> hard Na, three times.
+  //   `mqrdjia;=` -> puravastu ("antiquities"), plus five further page-1
+  //     words confirm `q` -> vowel sign u, consistent with the
+  //     pre-existing duplicate-code pattern already documented for `e`
+  //     above (same vowel sign, different legacy byte depending on the
+  //     preceding consonant's glyph).
+  //   `ia:dkh` -> sthanaya ("location", 2 independent occurrences on
+  //     the page) plus `.%ka:hla` -> granthayak ("a treatise") confirm
+  //     `:` -> tha.
+  //   `.%ka:hla` -> granthayak, plus repeated "-gama" (village)
+  //     place-name suffixes elsewhere on the page confirm `.` -> ga.
+  // NOT resolved (left as the existing, safe unmapped-placeholder
+  // fallback): the 4 remaining unmapped bytes in the same header line —
+  // each appears too rarely on this one page to cross-validate a guess the
+  // same rigorous way, and a wrong-but-plausible-looking guess here would
+  // be strictly worse than a flagged placeholder. A future task with more
+  // reference pages (or an authoritative FM Abhaya keyboard-layout table)
+  // should resolve these properly rather than guessing them now.
+  'n': 'බ',
+  '|': 'ඳ',
+  'o': 'ද',
+  'K': 'ණ',
+  'q': 'ු',
+  '.': 'ග',
+  ':': 'ථ',
 };
 
 export const FM_ABHAYA: LegacyMap = {

@@ -55,6 +55,27 @@ function splitOptions(text: string): { before: string; options: string[] } {
   return { before, options };
 }
 
+/**
+ * Splits a question's raw (unconverted) legacy source — `RawQuestion`/
+ * `Question.rawLegacy`, the concatenation of every line's original PDF
+ * bytes — into a legacy-encoded stem and option list, mirroring how
+ * `parseQuestions` splits the Unicode-converted `line.text` above. Reuses
+ * the exact same marker regexes: `^`/`&` option markers are ASCII, so they
+ * pass through `convertLegacy` unchanged and are byte-identical in the raw
+ * legacy source, and the question-number opener (`01'`) is only ever
+ * present at the very start of `rawLegacy` (only the first line's text has
+ * it; continuation lines are appended raw with no re-stripping). Used by
+ * the "Legacy font" export mode (lib/export/xlsx.ts) so a spreadsheet can
+ * be opened, unmodified, on a machine that still has the original legacy
+ * font (e.g. FM Abhaya) installed instead of a Unicode Sinhala font.
+ */
+export function splitLegacyQuestion(rawLegacy: string): { stem: string; options: string[] } {
+  const opener = QUESTION_START.exec(rawLegacy);
+  const rest = opener ? rawLegacy.slice(opener[0].length) : rawLegacy;
+  const { before, options } = splitOptions(rest);
+  return { stem: before.trim(), options: options.map((o) => o.trim()) };
+}
+
 export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] {
   const questions: RawQuestion[] = [];
   let current: RawQuestion | null = null;

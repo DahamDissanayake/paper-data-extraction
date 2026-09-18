@@ -6,6 +6,7 @@ import { PagePane } from './PagePane';
 import { QuestionCard } from './QuestionCard';
 import { AnswerKeyGrid } from './AnswerKeyGrid';
 import { ExportBar } from './ExportBar';
+import { Button } from '@/components/ui/Button';
 import type { OptionIndex, Question, QuestionKind } from '@/lib/types';
 
 type Tab = QuestionKind | 'answerKey';
@@ -32,6 +33,7 @@ export function ReviewWorkspace() {
   const patch = useSessionStore((s) => s.patch);
   const patchDebounced = useSessionStore((s) => s.patchDebounced);
   const flushPatch = useSessionStore((s) => s.flushPatch);
+  const newSession = useSessionStore((s) => s.newSession);
   const [activeTab, setActiveTab] = useState<Tab>('straight');
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   // Lazily seeded from the session at mount: if this session already has
@@ -111,6 +113,23 @@ export function ReviewWorkspace() {
     };
   }, [flushPatch]);
 
+  // Once step 4 is reached there was previously no way back to page/answer
+  // selection, and no way to start over — reported directly by a user.
+  // Going back clears the already-extracted results (rather than just
+  // changing `step`) so that, if the user changes the page/answer-page
+  // selection and returns to step 4, ReviewWorkspace's mount effect above
+  // (guarded on `session.questions.length > 0`) re-runs extraction instead
+  // of silently showing stale results from the old selection.
+  function goBackToAnswerPage() {
+    if (!confirm('Go back to page selection? The current extraction results will be discarded.')) return;
+    patch({ step: 3, questions: [], answerKey: {}, answerKeyUnresolved: [] });
+  }
+
+  function startNewSession() {
+    if (!confirm('Start a new session? This clears the current paper and all your edits.')) return;
+    newSession();
+  }
+
   if (!session || !sourceBlob) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -124,9 +143,19 @@ export function ReviewWorkspace() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[#E5E5E5] px-6 py-4">
-        <p className="text-xs tracking-widest uppercase text-[#767676]">Review</p>
-        <h1 className="text-xl mt-1">Verify extracted questions</h1>
+      <header className="border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs tracking-widest uppercase text-[#767676]">Review</p>
+          <h1 className="text-xl mt-1">Verify extracted questions</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={goBackToAnswerPage} data-testid="back-to-answer-page">
+            Back to page selection
+          </Button>
+          <Button variant="ghost" onClick={startNewSession} data-testid="new-session">
+            Start new session
+          </Button>
+        </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">

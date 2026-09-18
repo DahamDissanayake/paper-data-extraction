@@ -10,6 +10,27 @@ const golden: [string, string][] = [
   ['ms<s;=re', 'පිළිතුරු'],
   ['f;darkak', 'තෝරන්න'],
   ['f;dr;=re', 'තොරතුරු'],
+
+  // Added while investigating a real user report of garbled output on page
+  // 1's header line ("Y%S ,xldj ms<sn| f;dr;=re i|yka jk ol=Kq bkaÈhdfõ §
+  // rÑ; .%ka:hla jkafka" — real raw text from test/fixtures/pg1.items.json).
+  // The original FM_ABHAYA map only had 24 tokens, all derived from the
+  // handful of words above; real running prose (headers/instructions, as
+  // opposed to the cherry-picked option/stem words the golden set happened
+  // to cover) hits many more legacy byte codes. Each pair below was derived
+  // the same way as the existing ones — NOT from memory of the FM Abhaya
+  // keyboard layout, but by aligning an unmapped legacy word against
+  // already-mapped tokens plus the real Sinhala word the result must be
+  // (verified independently across 3-6 separate, unrelated occurrences of
+  // each new token in the real page-1 fixture before trusting it; see
+  // lib/sinhala/legacy/maps/fmAbhaya.ts's comments for the full trace).
+  ['ms<sn|', 'පිළිබඳ'],   // "regarding" — introduces n, |
+  ['i|yka', 'සඳහන්'],     // "mentioned" — confirms |
+  ['ol=Kq', 'දකුණු'],     // "south" — introduces o, K, q
+  ['ia:dkh', 'ස්ථානය'],   // "location" — introduces :
+  ['.%ka:hla', 'ග්‍රන්ථයක්'], // "a treatise" — introduces ., confirms :
+  ['mqrdjia;=', 'පුරාවස්තු'], // "antiquities" — confirms q
+  [',l=K', 'ලකුණ'],       // "a mark" — confirms K
 ];
 
 describe('convertLegacy / FM Abhaya', () => {

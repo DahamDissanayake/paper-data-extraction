@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { stripWatermark } from '@/lib/extract/watermark';
 import { groupIntoLines } from '@/lib/extract/lines';
-import { parseQuestions } from '@/lib/extract/parser';
+import { parseQuestions, splitLegacyQuestion } from '@/lib/extract/parser';
 import type { PositionedItem } from '@/lib/types';
 
 const pg1: PositionedItem[] = JSON.parse(fs.readFileSync('test/fixtures/pg1.items.json', 'utf8'));
@@ -36,5 +36,31 @@ describe('parseQuestions on page 1', () => {
 
   it('retains the legacy source for diffing', () => {
     expect(parsed[0].rawLegacy.length).toBeGreaterThan(0);
+  });
+
+  it('splits the real question 1 rawLegacy into the exact original legacy stem/options', () => {
+    // Ground truth: the real, unconverted pg1 fixture bytes for question 1.
+    const { stem, options } = splitLegacyQuestion(parsed[0].rawLegacy);
+    expect(stem).toBe('Y%S ,xldj ms<sn| f;dr;=re i|yka jk ol=Kq bkaÈhdfõ § rÑ; .%ka:hla jkafka"');
+    expect(options).toEqual([
+      'hd,amdk ffjmudff,',
+      'fYa.rdifYalrudff,',
+      'uKsfïl,hs',
+      'ffl,dhudff,',
+    ]);
+  });
+});
+
+describe('splitLegacyQuestion', () => {
+  it('strips the question-number opener and splits on ^N& markers', () => {
+    const raw = "01'wxl^1&fyrd^2&fojk^3&f;dard^4&isjk";
+    expect(splitLegacyQuestion(raw)).toEqual({
+      stem: 'wxl',
+      options: ['fyrd', 'fojk', 'f;dard', 'isjk'],
+    });
+  });
+
+  it('returns the whole input as stem when there are no option markers', () => {
+    expect(splitLegacyQuestion('wxl 01 isg 40')).toEqual({ stem: 'wxl 01 isg 40', options: [] });
   });
 });
