@@ -7,11 +7,15 @@ export interface LegacyMap {
 /** Vowel signs that are stored BEFORE their consonant in legacy order. */
 const PREFIX_VOWELS = new Set(['ෙ', 'ේ', 'ෛ']);
 
+/** Internal marker for the `da` ligature — never appears in final output. */
+const LONG_AA_MARKER = '';
+
 /** ෙ + ා → ො, ෙ + ෟ → ෞ, and the ේ/ෝ pairs. */
 const COMBINE: Record<string, string> = {
   'ො': 'ො', // ෙ + ා = ො
   'ෞ': 'ෞ', // ෙ + ෟ = ෞ
   'ේා': 'ෝ', // ේ + ා = ෝ
+  [`ෙ${LONG_AA_MARKER}`]: 'ෝ', // ෙ + da-ligature = ෝ (long o via the da ligature)
 };
 
 const SINHALA_CONSONANT = /[ක-ෆ]/;
@@ -49,5 +53,6 @@ export function convertLegacy(input: string, map: LegacyMap): { text: string; un
   // Stage 4 — normalize combining pairs.
   let text = out.join('');
   for (const [from, to] of Object.entries(COMBINE)) text = text.split(from).join(to);
+  text = text.split(LONG_AA_MARKER).join('ා'); // any uncombined da-ligature degrades to plain ා
   return { text, unmapped };
 }

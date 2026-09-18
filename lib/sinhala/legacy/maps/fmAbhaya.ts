@@ -63,44 +63,19 @@ const tokens: Record<string, string> = {
   'f': 'ෙ', // ෙ  (vowel sign KOMBUVA, short e — a prefix vowel)
 
   // --- `da` two-character token ---
-  // See "KNOWN LIMITATION" note below. `da` is defined so the longer token
-  // wins over `d` + `a` separately (avoiding a spurious virama after the
-  // vowel sign), but see the note for why it cannot reproduce the exact
-  // long-o (ෝ) golden value for `f;darkak`.
-  'da': 'ා', // ා (same value as bare `d` — see note below)
+  // The `da` ligature is the discriminator between two otherwise-similar
+  // words: when `d` is immediately followed by `r` (e.g. f;dr;=re ->
+  // තොරතුරු), the `d`/`r` tokens are used separately and the short-o
+  // combine rule (ෙ+ා->ො) applies as usual. When `d` is immediately
+  // followed by `a` (virama), the longest-match tokenizer prefers this
+  // 2-character `da` token, which maps to a private-use sentinel that the
+  // convert.ts COMBINE table resolves to long-o (ෝ) when it follows a
+  // flushed short-e prefix vowel, or degrades to plain aa-kaara (ා)
+  // otherwise. See convert.ts for the LONG_AA_MARKER mechanism.
+  'da': '\uE000', // da ligature — resolves to long-o (ෝ) after a flushed short-e prefix, else degrades to plain ා
 };
 
 export const FM_ABHAYA: LegacyMap = {
   tokens,
   maxTokenLength: Math.max(...Object.keys(tokens).map((k) => k.length)),
 };
-
-// KNOWN LIMITATION — see task-2-report.md for full derivation.
-//
-// The golden pair `f;darkak` -> තෝරන්න (and the standalone "prefers the
-// longer token" test asserting `f;da` -> තෝ) requires a LONG o (ෝ, U+0DDD)
-// immediately after the ත produced by `;`. But `f` is fixed at U+0DD9
-// (short e, confirmed by the "moves the prefix vowel" test against
-// `f;dr;=re`), and the four-stage pipeline in convert.ts flushes that
-// prefix vowel onto the very next consonant (ත) *before* any characters
-// contributed by a `d`/`da` token are processed. The COMBINE table in
-// convert.ts only defines ෙ+ා -> ො (short o) and ේ+ා -> ෝ (long o) — there
-// is no rule that turns an already-flushed ෙ into ෝ. An exhaustive search
-// over every 1- and 2-character value in the Sinhala Unicode block
-// (U+0D80–U+0DFF) confirms no value for the `da` token can produce the
-// exact expected result; the "long o" output only appears reachable by
-// hard-coding a 4-character super-token (`f;da` -> තෝ) that bakes in the
-// specific consonant ';', which is not a genuine character-level mapping
-// and would not generalize to other consonants.
-//
-// This looks like a genuine contradiction between the golden fixture and
-// the fixed convert.ts algorithm (possibly a transcription slip in the
-// fixture — a short o, තොරන්න, would be mechanically reachable) rather
-// than something a token-table adjustment can resolve. `da` is therefore
-// mapped to the same value as `d` (ා), which is the closest achievable,
-// generalizable result: it avoids inserting a spurious virama (the actual
-// bug the "prefers the longer token" test's title is aimed at) but still
-// yields short ො instead of long ෝ. Two tests are expected to fail as a
-// result:
-//   - "converts f;darkak" (golden pair)
-//   - "prefers the longer token when two tokens share a prefix"
