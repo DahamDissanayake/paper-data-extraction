@@ -33,11 +33,11 @@ export function Thumb({ page, selected, onClick }: {
       type="button"
       onClick={onClick}
       className={`border p-2 flex flex-col items-center gap-1 text-xs transition-colors ${
-        selected ? 'border-[#0A0A0A] bg-[#FAFAFA]' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]'
+        selected ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]'
       }`}
     >
       <canvas ref={ref} className="max-w-full" />
-      <span>{page.index + 1}</span>
+      <span className={selected ? 'text-white' : undefined}>{page.index + 1}</span>
     </button>
   );
 }

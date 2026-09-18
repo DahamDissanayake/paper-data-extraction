@@ -14,7 +14,19 @@ export default function Home() {
     let cancelled = false;
 
     (async () => {
-      const { id, isNew } = resolveSessionId(sessionStorage);
+      let sessionResult: { id: string; isNew: boolean };
+      try {
+        sessionResult = resolveSessionId(sessionStorage);
+      } catch {
+        // Referencing the bare `sessionStorage` global can itself throw
+        // synchronously in some privacy configurations (Safari's "Block
+        // All Cookies", a sandboxed iframe without allow-same-origin,
+        // etc.) — this is outside resolveSessionId's own try/catch, which
+        // only guards its internal getItem/setItem calls. Fall back to an
+        // in-memory session so the UI never gets stuck on "Loading…".
+        sessionResult = { id: crypto.randomUUID(), isNew: true };
+      }
+      const { id, isNew } = sessionResult;
       // Fire-and-forget: an abandoned session's IndexedDB row should never
       // outlive its tab, but this cleanup shouldn't block first paint.
       void deleteAllExcept(id);
