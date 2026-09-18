@@ -23,6 +23,11 @@ describe('classify', () => {
     expect(classify(q, [])).toBe('special');
   });
 
+  it('classifies the real Q16 shape as special (real transliterated conjunction word)', () => {
+    const q = { ...base, number: 16, options: ['AහාC', 'BහාC', 'BහාD', 'CහාD 2'] };
+    expect(classify(q, [])).toBe('special');
+  });
+
   it('marks a question with the wrong option count as special', () => {
     expect(classify({ ...base, options: ['ක', 'ඛ', 'ග'] }, [])).toBe('special');
   });

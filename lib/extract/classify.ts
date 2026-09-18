@@ -4,7 +4,7 @@ import type { RawQuestion } from './parser';
 export interface ImageRegion { pageIndex: number; bbox: BBox; }
 
 /** An option that is only A–D tokens joined by a conjunction or whitespace. */
-const AD_ONLY = /^[A-D](\s*(?:යා|සහ|,|and)?\s*[A-D])*$/i;
+const AD_ONLY = /^[A-D](\s*(?:හා|යා|සහ|,|and)?\s*[A-D])*$/i;
 
 /** Stem words that mean the question depends on a picture or table. */
 const FIGURE_WORDS = ['රූපය', 'රූපයේ', 'සිතියම', 'සිතියමේ', 'වගුව', 'වගුවේ', 'ප්‍රස්තාරය'];
