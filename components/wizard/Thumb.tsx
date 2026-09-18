@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import type { PageThumb } from './useWizardPages';
 
-export function Thumb({ page, selected, onClick }: {
+export function Thumb({ page, selected, ocr, onClick }: {
   page: PageThumb;
   selected: boolean;
+  ocr?: boolean;
   onClick: (e: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -36,7 +37,14 @@ export function Thumb({ page, selected, onClick }: {
         selected ? 'border-[#0A0A0A] bg-[#0A0A0A] text-white' : 'border-[#E5E5E5] hover:bg-[#FAFAFA]'
       }`}
     >
-      <canvas ref={ref} className="max-w-full" />
+      <div className="relative w-full">
+        <canvas ref={ref} className="max-w-full" />
+        {ocr && (
+          <span className="absolute top-1 right-1 border border-[#E5E5E5] bg-[#FFFFFF] text-[#0A0A0A] text-[10px] leading-none px-1 py-0.5">
+            OCR
+          </span>
+        )}
+      </div>
       <span className={selected ? 'text-white' : undefined}>{page.index + 1}</span>
     </button>
   );

@@ -26,4 +26,14 @@ describe('assemble', () => {
     const none = assemble([{ index: 0, items: pg1, images: [] }], null, true);
     expect(none.questions.every((q) => q.correctAnswer === null)).toBe(true);
   });
+
+  it('tags every question from a page marked ocr: true with the "ocr" flag', () => {
+    const ocred = assemble([{ index: 0, items: pg1, images: [], ocr: true }], null, true);
+    expect(ocred.questions).toHaveLength(7);
+    expect(ocred.questions.every((q) => q.flags.includes('ocr'))).toBe(true);
+  });
+
+  it('does not tag questions from a page without ocr set', () => {
+    expect(r.questions.every((q) => !q.flags.includes('ocr'))).toBe(true);
+  });
 });

@@ -6,6 +6,7 @@ import { Thumb } from './Thumb';
 import { useWizardPages } from './useWizardPages';
 import { useSessionStore } from '@/lib/session/store';
 import { suggestQuestionPages } from '@/lib/extract/suggest';
+import { needsOcr } from '@/lib/ocr/tesseract';
 
 export function PageSelectStep() {
   const patch = useSessionStore((s) => s.patch);
@@ -61,6 +62,7 @@ export function PageSelectStep() {
               key={p.index}
               page={p}
               selected={selected.has(p.index)}
+              ocr={needsOcr(p.items)}
               onClick={(e: MouseEvent<HTMLButtonElement>) => toggle(p.index, e.shiftKey)}
             />
           ))}

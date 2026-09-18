@@ -30,6 +30,18 @@ vi.mock('@/lib/pdf/images', () => ({
   getImageRegions: (...args: unknown[]) => getImageRegionsMock(...args),
 }));
 
+// needsOcr is pure logic (no I/O) so the real implementation runs here —
+// only recogniseDocPage (which touches document/canvas/pdf.js rendering)
+// is mocked, the same way the pdf.js-boundary modules above are mocked.
+const recogniseDocPageMock = vi.fn();
+vi.mock('@/lib/ocr/tesseract', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ocr/tesseract')>();
+  return {
+    ...actual,
+    recogniseDocPage: (...args: unknown[]) => recogniseDocPageMock(...args),
+  };
+});
+
 import { runExtraction } from '@/lib/extract/runPipeline';
 
 const fakeDoc = { __brand: 'fake-doc' } as unknown as PDFDocumentProxy;
@@ -59,6 +71,7 @@ beforeEach(() => {
   loadDocumentMock.mockReset().mockResolvedValue(fakeDoc);
   getPositionedItemsMock.mockReset();
   getImageRegionsMock.mockReset().mockResolvedValue([]);
+  recogniseDocPageMock.mockReset().mockResolvedValue([]);
 });
 
 describe('runExtraction', () => {
@@ -112,5 +125,35 @@ describe('runExtraction', () => {
     await runExtraction(session, fakeBlob());
 
     expect(getPositionedItemsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('OCR branch: a question page whose text-layer items fail needsOcr gets its items replaced by recogniseDocPage output, tagged ocr', async () => {
+    getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => {
+      // Page 1's text layer is near-empty (image-only page) -> needsOcr(items) is true.
+      if (index === 1) return pg1.slice(0, 3);
+      return [];
+    });
+    recogniseDocPageMock.mockResolvedValue(pg1);
+
+    const session = baseSession({ questionPages: [1], answerPage: null, hasNoAnswerSheet: true });
+    const result = await runExtraction(session, fakeBlob());
+
+    expect(recogniseDocPageMock).toHaveBeenCalledWith(fakeDoc, 1);
+    // OCR output (the full pg1 fixture) replaced the near-empty text-layer items.
+    expect(result.questions).toHaveLength(7);
+    expect(result.questions.every((q) => q.pageIndex === 1)).toBe(true);
+    expect(result.questions.every((q) => q.flags.includes('ocr'))).toBe(true);
+  });
+
+  it('does not call recogniseDocPage for a page with a real text layer', async () => {
+    getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => (
+      index === 0 ? pg1 : []
+    ));
+
+    const session = baseSession({ questionPages: [0], answerPage: null, hasNoAnswerSheet: true });
+    const result = await runExtraction(session, fakeBlob());
+
+    expect(recogniseDocPageMock).not.toHaveBeenCalled();
+    expect(result.questions.every((q) => !q.flags.includes('ocr'))).toBe(true);
   });
 });

@@ -2,6 +2,7 @@ import type { OptionIndex, Question, Session } from '@/lib/types';
 import { loadDocument } from '@/lib/pdf/loader';
 import { getPositionedItems } from '@/lib/pdf/textLayer';
 import { getImageRegions } from '@/lib/pdf/images';
+import { needsOcr, recogniseDocPage } from '@/lib/ocr/tesseract';
 import { assemble } from './pipeline';
 import type { ImageRegion } from './classify';
 
@@ -25,12 +26,16 @@ export async function runExtraction(
 
   const pages = await Promise.all(
     session.questionPages.map(async (index) => {
-      const [items, imageBBoxes] = await Promise.all([
+      const [textItems, imageBBoxes] = await Promise.all([
         getPositionedItems(doc, index),
         getImageRegions(doc, index),
       ]);
       const images: ImageRegion[] = imageBBoxes.map((bbox) => ({ pageIndex: index, bbox }));
-      return { index, items, images };
+      // Image-only pages (e.g. pages 9-10 of the reference paper) have no
+      // usable text layer; fall back to OCR so they still yield questions.
+      const ocr = needsOcr(textItems);
+      const items = ocr ? await recogniseDocPage(doc, index) : textItems;
+      return { index, items, images, ocr };
     }),
   );
 

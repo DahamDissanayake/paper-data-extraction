@@ -5,7 +5,7 @@ import { parseQuestions } from './parser';
 import { classify, type ImageRegion } from './classify';
 import { extractAnswerKey } from './answerKey';
 
-interface PageInput { index: number; items: PositionedItem[]; images: ImageRegion[]; }
+interface PageInput { index: number; items: PositionedItem[]; images: ImageRegion[]; ocr?: boolean; }
 
 export function assemble(
   pages: PageInput[],
@@ -22,6 +22,7 @@ export function assemble(
     for (const raw of parseQuestions(lines, page.index)) {
       const flags: Question['flags'] = [];
       if (raw.unmapped > 0) flags.push('unmapped-glyph');
+      if (page.ocr) flags.push('ocr');
       questions.push({
         id: `p${page.index}-q${raw.number}`,
         number: raw.number,
