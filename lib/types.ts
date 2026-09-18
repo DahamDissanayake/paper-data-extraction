@@ -72,5 +72,12 @@ export interface Session {
    * before this field existed still rehydrate.
    */
   ocrFailedPages?: number[];
+  /**
+   * The page selection `questions`/`answerKey` were extracted from, as
+   * `extractionKey()` renders it. Lets step 4 tell results that belong to
+   * the current selection from stale ones left by a selection the user has
+   * since changed. Optional so older persisted sessions still rehydrate.
+   */
+  extractedFor?: string;
   step: 1 | 2 | 3 | 4;
 }

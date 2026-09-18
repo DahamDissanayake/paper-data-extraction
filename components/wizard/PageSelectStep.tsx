@@ -6,9 +6,11 @@ import { Thumb } from './Thumb';
 import { useWizardPages } from './useWizardPages';
 import { useSessionStore } from '@/lib/session/store';
 import { suggestQuestionPages } from '@/lib/extract/suggest';
+import { resumeQuestionPages } from '@/lib/extract/resume';
 import { needsOcr } from '@/lib/ocr/tesseract';
 
 export function PageSelectStep() {
+  const session = useSessionStore((s) => s.session);
   const patch = useSessionStore((s) => s.patch);
   const { pages, error } = useWizardPages();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -18,8 +20,13 @@ export function PageSelectStep() {
   useEffect(() => {
     if (pages && !initialized.current) {
       initialized.current = true;
-      setSelected(new Set(suggestQuestionPages(pages)));
+      // Coming back from step 3 must restore what the user actually picked,
+      // not a fresh suggestion that would then overwrite it on Continue.
+      setSelected(new Set(resumeQuestionPages(session, suggestQuestionPages(pages))));
     }
+    // `session` is read once, on the first render that has pages; re-running
+    // on every session change would fight the user's own clicks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages]);
 
   function toggle(index: number, shiftKey: boolean) {
