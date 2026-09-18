@@ -1,12 +1,63 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { deleteAllExcept, getSession, resolveSessionId } from '@/lib/session/idb';
+import { createInitialSession, useSessionStore } from '@/lib/session/store';
+import { UploadStep } from '@/components/wizard/UploadStep';
+import { PageSelectStep } from '@/components/wizard/PageSelectStep';
+import { AnswerPageStep } from '@/components/wizard/AnswerPageStep';
+
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        Sinhala Past-Paper MCQ Extraction
-      </h1>
-      <p className="sinhala max-w-xl text-center text-lg">
-        සිංහල පසුගිය විභාග ප්‍රශ්න පත්‍ර වලින් බහුවරණ ප්‍රශ්න උපුටා ගැනීම
-      </p>
-    </main>
-  );
+  const session = useSessionStore((s) => s.session);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const { id, isNew } = resolveSessionId(sessionStorage);
+      // Fire-and-forget: an abandoned session's IndexedDB row should never
+      // outlive its tab, but this cleanup shouldn't block first paint.
+      void deleteAllExcept(id);
+
+      const restored = isNew ? undefined : await getSession(id);
+      if (cancelled) return;
+
+      if (restored) {
+        useSessionStore.getState().setSession(restored.session, restored.blob);
+      } else {
+        // Either a genuinely new tab, or the id survived in sessionStorage
+        // but IndexedDB had nothing for it (e.g. a private-window edge
+        // case) — either way, start from a fresh empty session.
+        useSessionStore.getState().setSession(createInitialSession(id));
+      }
+      setReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!ready || !session) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-[#767676]">Loading…</p>
+      </main>
+    );
+  }
+
+  switch (session.step) {
+    case 1:
+      return <UploadStep />;
+    case 2:
+      return <PageSelectStep />;
+    case 3:
+      return <AnswerPageStep />;
+    default:
+      return (
+        <main className="min-h-screen flex items-center justify-center">
+          <p className="text-sm text-[#767676]">Review workspace coming soon.</p>
+        </main>
+      );
+  }
 }
