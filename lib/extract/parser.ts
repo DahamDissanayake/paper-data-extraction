@@ -22,17 +22,22 @@ export interface RawQuestion {
  */
 const QUESTION_START = /^\s*(\d{1,2})\s*['.’]\s*(?=\S)/;
 /**
- * Option markers in the FM Abhaya legacy font are the literal ASCII bytes
- * '^' and '&' — that font remaps those two glyph slots to render as an
- * open/close parenthesis around the option digit. This is a font-specific
- * quirk of the source PDF (confirmed on the pg1 fixture: `"^1&"` comes from
- * item font `FMAbhayax`, whereas literal `"(1)"` elsewhere on the page comes
- * from an embedded `TimesNewRomanPSMT` run of ordinary prose). The Task 2
- * transliterator correctly leaves '^' and '&' untouched (Latin passthrough),
- * so the parser must recognize this marker shape directly rather than a
- * literal '(' ')' pair.
+ * An option marker reaches the parser in one of two shapes and both must be
+ * accepted:
+ *
+ *  - `(1)`..`(4)` — real Unicode parentheses. This is what the FM Abhaya
+ *    transliterator emits (that font remaps the '^' and '&' glyph slots to
+ *    an open/close parenthesis, so the map converts them), and it is also
+ *    what OCR produces: `recognisePage` tags its items `font: 'OCR'`, for
+ *    which `mapForFont` returns null, so OCR text is never transliterated
+ *    and arrives with genuine parentheses already.
+ *  - `^1&`..`^4&` — the raw FM byte pair, still seen whenever text reaches
+ *    the parser without going through a legacy map (an untransliterated
+ *    fixture, or a future FM font whose table lacks the '^'/'&' entries).
+ *
+ * Matching only the `^N&` form silently dropped every OCR'd question.
  */
-const OPTION_MARKER = /\^\s*([1-4])\s*&/g;
+const OPTION_MARKER = /(?:\^\s*[1-4]\s*&|\(\s*[1-4]\s*\))/g;
 
 function mergeBBox(a: BBox, b: BBox): BBox {
   const x = Math.min(a.x, b.x);

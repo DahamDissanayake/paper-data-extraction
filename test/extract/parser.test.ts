@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { stripWatermark } from '@/lib/extract/watermark';
 import { groupIntoLines } from '@/lib/extract/lines';
 import { parseQuestions } from '@/lib/extract/parser';
-import type { PositionedItem } from '@/lib/types';
+import type { Line, PositionedItem } from '@/lib/types';
 
 const pg1: PositionedItem[] = JSON.parse(fs.readFileSync('test/fixtures/pg1.items.json', 'utf8'));
 const parsed = parseQuestions(groupIntoLines(stripWatermark(pg1)), 0);
@@ -36,5 +36,40 @@ describe('parseQuestions on page 1', () => {
 
   it('retains the legacy source for diffing', () => {
     expect(parsed[0].rawLegacy.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * OCR'd pages never go through the legacy transliterator (`mapForFont`
+ * returns null for font 'OCR'), so their option markers arrive as genuine
+ * Unicode parentheses rather than the FM font's literal `^N&` glyph pair.
+ * The parser has to accept both shapes or every OCR'd question is silently
+ * dropped.
+ */
+describe('parseQuestions with real parenthesis option markers (OCR shape)', () => {
+  const line = (text: string, y: number): Line => ({
+    text,
+    items: [{ str: text, x: 10, y, w: 300, h: 12, font: 'OCR' }],
+    y,
+    bbox: { x: 10, y, w: 300, h: 12 },
+    source: 'ocr',
+  });
+
+  it('parses a question whose markers are "(1)".."(4)"', () => {
+    const parsedOcr = parseQuestions(
+      [line('01. කුමන නමකින් ද?', 700), line('(1) එක (2) දෙක (3) තුන (4) හතර', 684)],
+      3,
+    );
+    expect(parsedOcr).toHaveLength(1);
+    expect(parsedOcr[0].number).toBe(1);
+    expect(parsedOcr[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර']);
+  });
+
+  it('still parses the FM literal-glyph marker shape', () => {
+    const parsedFm = parseQuestions(
+      [line('01. කුමන නමකින් ද?', 700), line('^1&එක^2&දෙක^3&තුන^4&හතර', 684)],
+      3,
+    );
+    expect(parsedFm[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර']);
   });
 });
