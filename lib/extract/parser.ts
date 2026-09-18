@@ -60,10 +60,24 @@ function splitOptions(text: string): { before: string; options: string[] } {
   return { before, options };
 }
 
+/**
+ * How much bigger than this question's typical line gap a vertical gap has
+ * to be before a line stops counting as a continuation of it. Page 1 of the
+ * reference paper wraps at ~15pt and puts its page number ~60pt below the
+ * last option, so anything past ~2.5x is page furniture, not text.
+ */
+const CONTINUATION_GAP_FACTOR = 2.5;
+
+/** A line that is nothing but an integer — a page number, never option text. */
+const BARE_INTEGER_LINE = /^\d{1,3}$/;
+
 export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] {
   const questions: RawQuestion[] = [];
   let current: RawQuestion | null = null;
   let stemParts: string[] = [];
+  /** y of the last line consumed by `current`, and the gaps seen within it. */
+  let prevY = 0;
+  let gaps: number[] = [];
 
   const flush = () => {
     if (!current) return;
@@ -71,6 +85,13 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
     if (current.options.length > 0) questions.push(current);
     current = null;
     stemParts = [];
+    gaps = [];
+  };
+
+  /** Median gap seen so far inside the current question. */
+  const typicalGap = () => {
+    const sorted = [...gaps].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
   };
 
   for (const line of lines) {
@@ -79,6 +100,7 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
 
     if (opener) {
       flush();
+      prevY = line.y;
       const rest = line.text.slice(opener[0].length);
       const { before, options } = splitOptions(rest);
       current = {
@@ -95,6 +117,23 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
     }
 
     if (!current) continue;
+
+    // A bare page number never belongs to an option, whatever its spacing.
+    if (BARE_INTEGER_LINE.test(line.text.trim())) {
+      flush();
+      continue;
+    }
+
+    // Nor does anything separated from the question by an anomalous gap:
+    // wrapped continuation lines sit one line-height below, page furniture
+    // sits much further.
+    const gap = prevY - line.y;
+    if (gaps.length > 0 && gap > CONTINUATION_GAP_FACTOR * typicalGap()) {
+      flush();
+      continue;
+    }
+    gaps.push(gap);
+    prevY = line.y;
 
     const { before, options } = splitOptions(line.text);
     // A continuation line either extends the stem or adds more options.
