@@ -30,6 +30,8 @@ export function ReviewWorkspace() {
   const session = useSessionStore((s) => s.session);
   const sourceBlob = useSessionStore((s) => s.sourceBlob);
   const patch = useSessionStore((s) => s.patch);
+  const patchDebounced = useSessionStore((s) => s.patchDebounced);
+  const flushPatch = useSessionStore((s) => s.flushPatch);
   const [activeTab, setActiveTab] = useState<Tab>('straight');
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   // Lazily seeded from the session at mount: if this session already has
@@ -75,9 +77,12 @@ export function ReviewWorkspace() {
 
   const activeQuestion = questions.find((q) => q.id === activeQuestionId) ?? null;
 
+  // Edits here happen per keystroke, so the IndexedDB write is debounced
+  // (see lib/session/store.ts#patchDebounced) — the in-memory session, and
+  // therefore the UI, still updates synchronously on every change.
   function updateQuestion(id: string, partial: Partial<Question>) {
     if (!session) return;
-    patch({
+    patchDebounced({
       questions: session.questions.map((q) => (q.id === id ? { ...q, ...partial, edited: true } : q)),
     });
   }
@@ -87,7 +92,7 @@ export function ReviewWorkspace() {
     const nextKey = { ...session.answerKey };
     if (value == null) delete nextKey[number];
     else nextKey[number] = value;
-    patch({
+    patchDebounced({
       answerKey: nextKey,
       answerKeyUnresolved: session.answerKeyUnresolved.filter((n) => n !== number),
       questions: session.questions.map((q) =>
@@ -95,6 +100,16 @@ export function ReviewWorkspace() {
       ),
     });
   }
+
+  // Safety net for the debounced writes above: flush immediately if the tab
+  // is about to close/hide, and on unmount, so a pending edit is never lost.
+  useEffect(() => {
+    window.addEventListener('beforeunload', flushPatch);
+    return () => {
+      window.removeEventListener('beforeunload', flushPatch);
+      flushPatch();
+    };
+  }, [flushPatch]);
 
   if (!session || !sourceBlob) {
     return (
