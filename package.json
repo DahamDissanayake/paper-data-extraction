@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsc --noEmit && vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "fixtures": "node test/tools/dump-fixtures.mjs"
   },
   "dependencies": {
