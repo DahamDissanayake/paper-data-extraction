@@ -58,6 +58,7 @@ export function ReviewWorkspace() {
           questions: result.questions,
           answerKey: result.answerKey,
           answerKeyUnresolved: result.unresolved,
+          ocrFailedPages: result.ocrFailedPages,
         });
         setStatus('done');
       } catch (err) {
@@ -119,6 +120,7 @@ export function ReviewWorkspace() {
     );
   }
 
+  const ocrFailedPages = session.ocrFailedPages ?? [];
   const answerKeyCount = Object.keys(session.answerKey).length;
   const countFor = (t: Tab) => (t === 'answerKey' ? answerKeyCount : grouped[t].length);
 
@@ -155,6 +157,13 @@ export function ReviewWorkspace() {
           </div>
 
           <div className="flex-1 overflow-auto p-4">
+            {ocrFailedPages.length > 0 && (
+              <p className="border border-[#E5E5E5] px-3 py-2 mb-4 text-sm text-[#0A0A0A]">
+                Text recognition failed on page{ocrFailedPages.length > 1 ? 's' : ''}{' '}
+                {ocrFailedPages.map((p) => p + 1).join(', ')}. Questions on{' '}
+                {ocrFailedPages.length > 1 ? 'those pages' : 'that page'} are missing from this list.
+              </p>
+            )}
             {status === 'loading' && <p className="text-sm text-[#767676]">Extracting questions…</p>}
             {status === 'error' && (
               <p className="text-sm text-[#767676]">Extraction failed. Try re-uploading the PDF.</p>

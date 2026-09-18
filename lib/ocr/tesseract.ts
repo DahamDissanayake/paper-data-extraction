@@ -120,7 +120,13 @@ export async function recognisePage(
       .filter((w) => w.text.trim())
       .map((w) => ocrWordToItem(w, canvas.height, scale));
   } finally {
-    await worker.terminate();
+    // Never let a teardown failure mask the real error — runPipeline needs
+    // to see why recognition failed so it can isolate the page.
+    try {
+      await worker.terminate();
+    } catch {
+      /* the worker is going away regardless */
+    }
   }
 }
 

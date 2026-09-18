@@ -65,5 +65,12 @@ export interface Session {
   questions: Question[];
   answerKey: Record<number, OptionIndex>;
   answerKeyUnresolved: number[];
+  /**
+   * Question pages where OCR was required but failed. Extraction continues
+   * without them; the review workspace shows which pages are missing so a
+   * short question list is never silent. Optional so sessions persisted
+   * before this field existed still rehydrate.
+   */
+  ocrFailedPages?: number[];
   step: 1 | 2 | 3 | 4;
 }
