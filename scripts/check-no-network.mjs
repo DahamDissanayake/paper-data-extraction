@@ -62,6 +62,23 @@ const ASSET_HOSTS = [
 ];
 
 /**
+ * Injected by the deployment platform itself, not by this app or any of its
+ * dependencies — never present in `next build` output run locally or on any
+ * other host, only when Vercel's own build wrapper ("Applying modifyConfig
+ * from Vercel" in the build log) adds it. Unlike DOC_HOSTS, these genuinely
+ * ARE fetch targets when triggered — but the trigger is an explicit,
+ * opt-in user action on Vercel's own toolbar UI (`data-explicit-opt-in`),
+ * and no code path here ever reaches it with extracted PDF content or any
+ * other app data. Disabling the Vercel Toolbar in the project's dashboard
+ * settings (Settings → General → Vercel Toolbar → Off) removes this
+ * injection entirely; this allowlist entry is the fallback so the build
+ * still passes if it's left on.
+ */
+const PLATFORM_HOSTS = new Map([
+  ['vercel.live', "Vercel's own opt-in preview/production Toolbar, injected by the Vercel build step"],
+]);
+
+/**
  * Inspected and confirmed non-fetching. Each entry says why.
  */
 const DOC_HOSTS = new Map([
@@ -107,6 +124,7 @@ function scan(dir, label) {
       // (`new URL("https://a#б")`).
       if (!host.includes('.')) continue;
       if (DOC_HOSTS.has(host)) continue;
+      if (PLATFORM_HOSTS.has(host)) continue;
       const line = text.slice(0, match.index).split('\n').length;
       const context = text.slice(Math.max(0, match.index - 50), match.index + 100).replace(/\s+/g, ' ');
       const why = ASSET_HOSTS.includes(host)
