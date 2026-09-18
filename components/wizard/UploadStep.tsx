@@ -12,8 +12,15 @@ export function UploadStep() {
     if (!files?.length) return;
     const isPdf = files[0].type === 'application/pdf';
     const allImages = [...files].every((f) => f.type.startsWith('image/'));
-    if (!isPdf && !allImages) { setError('Upload one PDF, or a set of JPG/PNG images.'); return; }
+    if (!isPdf && !allImages) { setError('Upload one PDF, or a single JPG/PNG page.'); return; }
     if (isPdf && files.length > 1) { setError('Upload a single PDF at a time.'); return; }
+    // `Session.sourceBlob` holds one Blob, so only files[0] is ever used.
+    // Accepting a multi-page image selection would silently drop every page
+    // but the first, so say no instead of pretending.
+    if (allImages && files.length > 1) {
+      setError('Only one image at a time for now — upload a PDF for a multi-page paper.');
+      return;
+    }
     setError('');
     if (!session) return;
     setSession({
@@ -34,7 +41,7 @@ export function UploadStep() {
         className="border border-dashed border-[#E5E5E5] h-72 flex flex-col items-center justify-center cursor-pointer hover:bg-[#FAFAFA]"
       >
         <p className="text-sm">Drop a PDF here, or click to choose</p>
-        <p className="text-xs text-[#767676] mt-2">PDF, or a set of JPG / PNG pages</p>
+        <p className="text-xs text-[#767676] mt-2">One PDF, or a single JPG / PNG page</p>
         <input ref={input} type="file" hidden accept="application/pdf,image/*" multiple
                onChange={(e) => void accept(e.target.files)} />
       </div>

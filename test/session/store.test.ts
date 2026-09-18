@@ -73,4 +73,15 @@ describe('useSessionStore: debounced persistence (Task 12 fix)', () => {
     useSessionStore.getState().patch({ sourceName: 'immediate-2' });
     expect(putSessionMock).toHaveBeenCalledTimes(2);
   });
+
+  it('patch() also cancels a pending debounced write', () => {
+    useSessionStore.getState().patchDebounced({ sourceName: 'typed' });
+    useSessionStore.getState().patch({ sourceName: 'committed' });
+    expect(putSessionMock).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(2000);
+    // The stale debounce timer must not fire a second, redundant write.
+    expect(putSessionMock).toHaveBeenCalledTimes(1);
+    expect(putSessionMock.mock.calls[0][0].sourceName).toBe('committed');
+  });
 });

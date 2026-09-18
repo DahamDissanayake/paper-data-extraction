@@ -51,13 +51,17 @@ export function PagePane({ activeQuestion }: { activeQuestion: Question | null }
     let cancelled = false;
     (async () => {
       try {
-        const page = await doc.getPage(targetPage + 1);
-        const viewport1 = page.getViewport({ scale: 1 });
         const canvas = canvasRef.current;
-        if (canvas) await renderPageToCanvas(doc, targetPage, SCALE, canvas);
+        if (!canvas) return;
+        // renderPageToCanvas already has the page; it hands back the scale-1
+        // viewport so this doesn't call doc.getPage() a second time for it.
+        const unscaled = await renderPageToCanvas(doc, targetPage, SCALE, canvas);
         if (cancelled) return;
-        setUnscaledHeight(viewport1.height);
+        setUnscaledHeight(unscaled.height);
         setRenderedPage(targetPage);
+        // Clear any error from an earlier page: without this a stale message
+        // lingered above a page that had just rendered perfectly well.
+        setError('');
       } catch {
         if (!cancelled) setError('Could not render the page.');
       }

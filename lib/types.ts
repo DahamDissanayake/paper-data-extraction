@@ -38,7 +38,16 @@ export interface Line {
 }
 
 export type QuestionKind = 'straight' | 'special' | 'figure';
-export type QuestionFlag = 'ocr' | 'low-confidence' | 'unmapped-glyph';
+/**
+ * `'low-confidence'` was specced alongside these but never assignable:
+ * nothing carries Tesseract's per-word confidence past `recognisePage`, so
+ * no code path could ever set it. Wiring it honestly would mean threading a
+ * confidence score through PositionedItem -> Line -> RawQuestion, which is
+ * a data-model change beyond this fix wave. It is removed rather than left
+ * advertising a badge that can never appear; OCR'd questions still carry
+ * the visible `'ocr'` flag, so OCR output is never silently auto-trusted.
+ */
+export type QuestionFlag = 'ocr' | 'unmapped-glyph';
 
 export interface Question {
   id: string;

@@ -1,7 +1,12 @@
 'use client';
 import type { OptionIndex } from '@/lib/types';
 
-const CELL_COUNT = 40;
+/**
+ * The reference paper has 40 questions and the grid is specced as 40 cells,
+ * but a paper with more must not silently lose the extra ones — so 40 is a
+ * floor, not a fixed size.
+ */
+const MIN_CELL_COUNT = 40;
 
 export function AnswerKeyGrid({ answerKey, unresolved, onSetAnswer }: {
   answerKey: Record<number, OptionIndex>;
@@ -9,6 +14,11 @@ export function AnswerKeyGrid({ answerKey, unresolved, onSetAnswer }: {
   onSetAnswer: (number: number, value: OptionIndex | null) => void;
 }) {
   const unresolvedSet = new Set(unresolved);
+  const cellCount = Math.max(
+    MIN_CELL_COUNT,
+    ...Object.keys(answerKey).map(Number),
+    ...unresolved,
+  );
 
   function handleChange(n: number, raw: string) {
     if (raw === '') {
@@ -21,7 +31,7 @@ export function AnswerKeyGrid({ answerKey, unresolved, onSetAnswer }: {
 
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }}>
-      {Array.from({ length: CELL_COUNT }, (_, i) => i + 1).map((n) => {
+      {Array.from({ length: cellCount }, (_, i) => i + 1).map((n) => {
         const isUnresolved = unresolvedSet.has(n);
         return (
           <div

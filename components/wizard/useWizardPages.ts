@@ -54,7 +54,11 @@ export function useWizardPages() {
             items.map((its, index) => ({
               index,
               items: its,
-              draw: (canvas: HTMLCanvasElement) => renderPageToCanvas(doc, index, 0.3, canvas),
+              draw: async (canvas: HTMLCanvasElement) => {
+                // Thumbnails don't need the page size renderPageToCanvas
+                // returns; discard it to keep PageThumb.draw void-returning.
+                await renderPageToCanvas(doc, index, 0.3, canvas);
+              },
             })),
           );
         } else {
