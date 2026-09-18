@@ -26,3 +26,8 @@
 
 html, body { background: var(--color-page); color: var(--color-ink); }
 .sinhala { font-family: var(--font-sinhala); line-height: 1.8; }
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-page);
+}
