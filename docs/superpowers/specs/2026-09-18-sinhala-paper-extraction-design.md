@@ -40,6 +40,18 @@ Two properties make it harder than a lookup table:
 
 Worked example: `f;dr;=re` → `තොරතුරු`.
 
+### Roughly half of each page is watermark
+
+48% of page 1's text items are a diagonal watermark —
+`jhU m<d;a wOHdmk fomd¾;fïka;=j` and `Provincial Department of Education - NWP`,
+eleven copies each, set in `FMDeranax`. These interleave with real content by
+y-position and would corrupt line grouping, so they are removed before lines
+are formed.
+
+Repetition alone cannot be the test: the option markers `^1&`–`^4&` each appear
+seven times on page 1 and are legitimate content. The filter therefore applies
+only to runs above a minimum length.
+
 ### Question structure is regular
 
 Questions follow `NN` + stem + `^1& ^2& ^3& ^4&`. In FM encoding `^` and `&`
@@ -63,6 +75,15 @@ On page 11 the answer digits extract in the order
 extract as `1 11 21 31 / 2 12 22 32 / …`. The two grids use different
 traversal orders. Pairing them by text order produces a wrong answer key with
 no error raised. Pairing must be geometric.
+
+The rows are also not a uniform grid. Four distinct patterns occur on the one
+page: answers sitting 1pt below their labels, labels and answers interleaved
+within a single y band, and answers sitting 1pt *above* their labels. Any
+algorithm that assumes a fixed row shape will break.
+
+What is regular is the horizontal relationship: every answer sits roughly 24pt
+to the right of its label, within 1pt of the same y. That is the signal to pair
+on.
 
 Page 11 also carries Part II answers as prose. These are out of scope.
 
@@ -108,6 +129,7 @@ PDF/image bytes
   │
   ├─ ocr/tesseract.ts ──── lazy worker, `sin` traineddata
   │
+  ├─ extract/watermark.ts  drop repeated long runs before grouping
   ├─ extract/lines.ts ──── y-cluster into lines, detect columns
   ├─ extract/parser.ts ─── line stream → RawQuestion[]
   ├─ extract/classify.ts ─ Straight | Special | Figure
@@ -130,9 +152,17 @@ without branching.
 3. Reorder prefix vowels after their consonant
 4. Normalize combining forms — `ෙ`+`ා` → `ො`, rakaransaya, yansaya, repaya
 
-`detectFont.ts` selects the table from the pdf.js `fontFamily` string. Because
-the reference paper alone uses six FM fonts, this selection is load-bearing;
-unknown fonts fall back to the FM-standard layout.
+`detectFont.ts` selects the table from the PDF's real font name. That name is
+**not** available from `textContent.styles[fontName].fontFamily`, which returns
+only the CSS generic `sans-serif` or `serif`. It must be read from
+`page.commonObjs.get(item.fontName).name`, which yields `XSUOWA+FMAbhayax` —
+and `await page.getOperatorList()` must run first, or `commonObjs` is empty and
+every font resolves to an internal id such as `g_d0_f1`. The six-character
+subset prefix is stripped before lookup.
+
+Because the reference paper alone uses six FM fonts, this selection is
+load-bearing; unknown `FM*` fonts fall back to the FM-standard layout, and
+non-FM fonts return `null` so Latin text passes through unconverted.
 
 Unmapped codes emit `⟨?⟩` and set an `unmapped-glyph` flag on the question, so
 an incorrect or missing font table is visible rather than silent.
