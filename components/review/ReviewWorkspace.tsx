@@ -7,6 +7,7 @@ import { PagePane } from './PagePane';
 import { QuestionCard } from './QuestionCard';
 import { AnswerKeyGrid } from './AnswerKeyGrid';
 import { ExportBar } from './ExportBar';
+import { Button } from '@/components/ui/Button';
 import type { OptionIndex, Question, QuestionKind } from '@/lib/types';
 
 type Tab = QuestionKind | 'answerKey';
@@ -33,6 +34,7 @@ export function ReviewWorkspace() {
   const patch = useSessionStore((s) => s.patch);
   const patchDebounced = useSessionStore((s) => s.patchDebounced);
   const flushPatch = useSessionStore((s) => s.flushPatch);
+  const newSession = useSessionStore((s) => s.newSession);
   const [activeTab, setActiveTab] = useState<Tab>('straight');
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   // Lazily seeded from the session at mount: if this session already has
@@ -146,9 +148,29 @@ export function ReviewWorkspace() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[#E5E5E5] px-6 py-4">
-        <p className="text-xs tracking-widest uppercase text-[#767676]">Review</p>
-        <h1 className="text-xl mt-1">Verify extracted questions</h1>
+      <header className="border-b border-[#E5E5E5] px-6 py-4 flex items-center gap-3">
+        <div className="flex-1">
+          <p className="text-xs tracking-widest uppercase text-[#767676]">Review</p>
+          <h1 className="text-xl mt-1">Verify extracted questions</h1>
+        </div>
+        {/*
+          Step 4 had no way out at all: no Back, and `newSession` had zero
+          callers anywhere, so the spec's "ends on tab close or explicit New
+          Session" had no explicit path.
+        */}
+        <Button variant="ghost" onClick={() => { flushPatch(); patch({ step: 3 }); }}>
+          Back
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (window.confirm('Start a new session? The current paper and all edits will be discarded.')) {
+              newSession();
+            }
+          }}
+        >
+          New Session
+        </Button>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
