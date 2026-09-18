@@ -12,8 +12,118 @@ const golden: [string, string][] = [
   ['f;dr;=re', 'තොරතුරු'],
 ];
 
+/**
+ * The two golden pairs from the plan's "Verified Source Facts" table that
+ * no task ever turned into a test. They exercise the ඹ/ර්/්‍ය codes and the
+ * `e` = ැ reading ("පැය"), all of which the table was missing.
+ */
+const planGolden: [string, string][] = [
+  ['ld,h meh 01 hs', 'කාලය පැය 01 යි'],
+  ['jhU m<d;a wOHdmk fomd¾;fïka;=j', 'වයඹ පළාත් අධ්‍යාපන දෙපාර්තමේන්තුව'],
+];
+
+/**
+ * Pairs derived for this fix wave by rendering page 1 of
+ * test/fixtures/GRADE-11-HISTORY.pdf with its own embedded FM fonts and
+ * reading the drawn glyphs, then aligning them against the legacy string at
+ * the same position in test/fixtures/pg1.items.json. Nothing here was
+ * recalled from general familiarity with FM keyboard layouts.
+ */
+const derivedGolden: [string, string][] = [
+  // Q1
+  ['ms<sn|', 'පිළිබඳ'],
+  ['i|yka', 'සඳහන්'],
+  ['ol=Kq', 'දකුණු'],
+  ['bkaÈhdfõ', 'ඉන්දියාවේ'],
+  ['.%ka:hla', 'ග්‍රන්ථයක්'],
+  ['jkafka"', 'වන්නේ,'],
+  ['uKsfïl,hs', 'මණිමේකලයි'],
+  ['fYa.rdifYalrudff,', 'ශේගරාසශේකරමාලෛ'],
+  ['ffl,dhudff,', 'කෛලායමාලෛ'],
+  // Q2
+  ['wfma', 'අපේ'],
+  ['ixialD;sl', 'සංස්කෘතික'],
+  ['fmkakqï', 'පෙන්නුම්'],
+  ['flfrk', 'කෙරෙන'],
+  ['Ôjudk', 'ජීවමාන'],
+  ['idlaIs', 'සාක්ෂි'],
+  ['yelafla', 'හැක්කේ'],
+  ['kgnqka', 'නටබුන්'],
+  ['Ñ;% uQ¾;s leghï', 'චිත්‍ර මූර්ති කැටයම්'],
+  ['mqrdjia;=', 'පුරාවස්තු'],
+  // Q3
+  ['ueáTre', 'මැටිඔරු'],
+  ['iqidkj,', 'සුසානවල'],
+  ['merKs', 'පැරණි'],
+  ['iaÓr', 'ස්ථීර'],
+  ['idlaIshls', 'සාක්ෂියකි'],
+  ['.,afuj,ï', 'ගල්මෙවලම්'],
+  ['nyq,j', 'බහුලව'],
+  [';ekam;a', 'තැන්පත්'],
+  [';sîu', 'තිබීම'],
+  ['ñksia', 'මිනිස්'],
+  ['NIaudjfYaI', 'භෂ්මාවශේෂ'],
+  ['lsÍu', 'කිරීම'],
+  ['Tjqka úiska', 'ඔවුන් විසින්'],
+  ['mßyrKh', 'පරිහරණය'],
+  ['NdKav fldgia', 'භාණ්ඩ කොටස්'],
+  ['wegiels,s', 'ඇටසැකිලි'],
+  // Q4
+  ['ft;sydisl', 'ඓතිහාසික'],
+  ['uQ,dY%j,', 'මූලාශ්‍රවල'],
+  ['ëjrhka úiQ .ï', 'ධීවරයන් විසූ ගම්'],
+  ['y÷kajd we;af;a', 'හඳුන්වා ඇත්තේ'],
+  ['l=uk kulska o@', 'කුමන නමකින් ද?'],
+  ['mÜgk.du', 'පට්ටනගාම'],
+  ['flajÜg .du', 'කේවට්ට ගාම'],
+  ['kshï.ï', 'නියම්ගම්'],
+  // Q5
+  ['ld,fha', 'කාලයේ'],
+  ['mofhka woyia', 'පදයෙන් අදහස්'],
+  ['jQfha', 'වූයේ'],
+  ['mjq,hs', 'පවුලයි'],
+  ['.Dym;s', 'ගෘහපති'],
+  // Q6
+  ['iuia; f,dalhgu', 'සමස්ත ලෝකයටම'],
+  ['wêm;s', 'අධිපති'],
+  ['ixl,amh Ndú; l<', 'සංකල්පය භාවිත කළ'],
+  ['l+glKaKdNh', 'කූටකණ්ණාභය'],
+  ['uyfika', 'මහසෙන්'],
+  ['ldYHm', 'කාශ්‍යප'],
+  ['ksYaYxlu,a,', 'නිශ්ශංකමල්ල'],
+  // Q7
+  ['úchndyq rcq', 'විජයබාහු රජු'],
+  ['fmdf<dkakrej', 'පොළොන්නරුව'],
+  ['uOHia:dkh', 'මධ්‍යස්ථානය'],
+  ['f;dard .ekSug n,mE jeo.;au', 'තෝරා ගැනීමට බලපෑ වැදගත්ම'],
+  ['idOlh jQfhA', 'සාධකය වූයේ'],
+  ['fpda, md,kh ksid', 'චෝල පාලනය නිසා'],
+  ['wkqrdOmqrh úkdYhg m;aj', 'අනුරාධපුරය විනාශයට පත්ව'],
+  ['jvd', 'වඩා'],
+  ['iYS%l m%foaYhla ùuhs', 'සශ්‍රීක ප්‍රදේශයක් වීමයි'],
+  ['bkaÈhdkq id.rfha ngysr', 'ඉන්දියානු සාගරයේ බටහිර'],
+  ['mej;s wka;¾cd;sl fj<|dï kef.kysr', 'පැවති අන්තර්ජාතික වෙළඳාම් නැගෙනහිර'],
+  ['l,dmhg udre ùu', 'කලාපයට මාරු වීම'],
+  ['wdrlaIs; ia:dkhla', 'ආරක්ෂිත ස්ථානයක්'],
+  // Instructions block and masthead
+  ['ish¨ u ysñlï weúßKs', 'සියලු ම හිමිකම් ඇවිරිණි'],
+  ['fojk jdr mÍlaIKh', 'දෙවන වාර පරීක්ෂණය'],
+  ['fY%aKsh', 'ශ්‍රේණිය'],
+  ['ku$ úNd. wxlh(', 'නම/ විභාග අංකය:'],
+  ['ie,lsh hq;=hs (', 'සැලකිය යුතුයි :'],
+  ['imhkak', 'සපයන්න'],
+  ['isg 40 olajd', 'සිට 40 දක්වා'],
+  ['ksjerÈ fyda jvd;a .e<fmk', 'නිවැරදි හෝ වඩාත් ගැළපෙන'],
+  ['iemfhk ms<s;=re m;%fha', 'සැපයෙන පිළිතුරු පත්‍රයේ'],
+  ['tla tla m%Yakh i|yd', 'එක් එක් ප්‍රශ්නය සඳහා'],
+  ['lj w;=ßka', 'කව අතුරින්'],
+  ['f;dard.;a ms<s;=frys wxlhg', 'තෝරාගත් පිළිතුරෙහි අංකයට'],
+  ['ieif|k ljh ;=<', 'සැසඳෙන කවය තුළ'],
+  [',l=K fhdokak', 'ලකුණ යොදන්න'],
+];
+
 describe('convertLegacy / FM Abhaya', () => {
-  for (const [legacy, unicode] of golden) {
+  for (const [legacy, unicode] of [...golden, ...planGolden, ...derivedGolden]) {
     it(`converts ${legacy}`, () => {
       expect(convertLegacy(legacy, FM_ABHAYA).text).toBe(unicode);
     });
