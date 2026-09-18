@@ -5,6 +5,7 @@ import { createInitialSession, useSessionStore } from '@/lib/session/store';
 import { UploadStep } from '@/components/wizard/UploadStep';
 import { PageSelectStep } from '@/components/wizard/PageSelectStep';
 import { AnswerPageStep } from '@/components/wizard/AnswerPageStep';
+import { ReviewWorkspace } from '@/components/review/ReviewWorkspace';
 
 export default function Home() {
   const session = useSessionStore((s) => s.session);
@@ -66,10 +67,6 @@ export default function Home() {
     case 3:
       return <AnswerPageStep />;
     default:
-      return (
-        <main className="min-h-screen flex items-center justify-center">
-          <p className="text-sm text-[#767676]">Review workspace coming soon.</p>
-        </main>
-      );
+      return <ReviewWorkspace />;
   }
 }
