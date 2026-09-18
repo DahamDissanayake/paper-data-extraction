@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Noto Sans Sinhala';
+  src: url('/fonts/NotoSansSinhala-Regular.woff2') format('woff2');
+  font-weight: 400; font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Sinhala';
+  src: url('/fonts/NotoSansSinhala-Bold.woff2') format('woff2');
+  font-weight: 700; font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900; font-display: swap;
+}
+
+@theme {
+  --color-page: #FFFFFF;
+  --color-ink: #0A0A0A;
+  --color-hairline: #E5E5E5;
+  --font-sinhala: 'Noto Sans Sinhala', sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+html, body { background: var(--color-page); color: var(--color-ink); }
+.sinhala { font-family: var(--font-sinhala); line-height: 1.8; }
