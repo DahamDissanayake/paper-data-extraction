@@ -50,17 +50,20 @@ test('the review workspace can go back and start a new session', async ({ page }
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByTestId('question-1-stem')).toBeVisible({ timeout: 60_000 });
 
-  await expect(page.getByRole('button', { name: 'New Session' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start new session' })).toBeVisible();
 
   // Back returns to step 3 with the earlier answer-sheet choice still made,
   // so Continue goes straight forward again without losing the extraction.
-  await page.getByRole('button', { name: 'Back' }).click();
+  // Both Back and New Session are confirm()-guarded against accidental data
+  // loss, so each click needs its own one-shot dialog handler.
+  page.once('dialog', (d) => d.accept());
+  await page.getByRole('button', { name: 'Back to page selection' }).click();
   await expect(page.getByText('Step 3 of 4')).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByTestId('question-1-answer')).toHaveValue('3', { timeout: 60_000 });
 
   // New Session clears everything and returns to the upload step.
   page.once('dialog', (d) => d.accept());
-  await page.getByRole('button', { name: 'New Session' }).click();
+  await page.getByRole('button', { name: 'Start new session' }).click();
   await expect(page.getByText('Step 1 of 4')).toBeVisible({ timeout: 30_000 });
 });
