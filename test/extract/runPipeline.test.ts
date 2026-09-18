@@ -145,6 +145,54 @@ describe('runExtraction', () => {
     expect(result.questions.every((q) => q.flags.includes('ocr'))).toBe(true);
   });
 
+  /**
+   * The OCR call used to sit inside a bare Promise.all with no error
+   * isolation, so one failed page (a worker/wasm asset that will not load, a
+   * browser incompatibility, a corrupt render) took down extraction for the
+   * WHOLE document, including pages that never needed OCR.
+   */
+  describe('OCR failure isolation', () => {
+    it('keeps extracting the rest of the document when one page fails OCR', async () => {
+      getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => {
+        if (index === 0) return pg1;          // real text layer, no OCR
+        if (index === 1) return pg1.slice(0, 3); // near-empty -> needs OCR
+        return [];
+      });
+      recogniseDocPageMock.mockRejectedValue(new Error('worker failed to load'));
+
+      const session = baseSession({ questionPages: [0, 1], answerPage: null, hasNoAnswerSheet: true });
+      const result = await runExtraction(session, fakeBlob());
+
+      // Page 0 still produced its seven questions.
+      expect(result.questions).toHaveLength(7);
+      expect(result.questions.every((q) => q.pageIndex === 0)).toBe(true);
+    });
+
+    it('reports the failed page so the failure is visible, not silent', async () => {
+      getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => (
+        index === 1 ? pg1.slice(0, 3) : pg1
+      ));
+      recogniseDocPageMock.mockRejectedValue(new Error('worker failed to load'));
+
+      const session = baseSession({ questionPages: [0, 1], answerPage: null, hasNoAnswerSheet: true });
+      const result = await runExtraction(session, fakeBlob());
+
+      expect(result.ocrFailedPages).toEqual([1]);
+    });
+
+    it('reports no failures when OCR succeeds', async () => {
+      getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => (
+        index === 1 ? pg1.slice(0, 3) : []
+      ));
+      recogniseDocPageMock.mockResolvedValue(pg1);
+
+      const session = baseSession({ questionPages: [1], answerPage: null, hasNoAnswerSheet: true });
+      const result = await runExtraction(session, fakeBlob());
+
+      expect(result.ocrFailedPages).toEqual([]);
+    });
+  });
+
   it('does not call recogniseDocPage for a page with a real text layer', async () => {
     getPositionedItemsMock.mockImplementation(async (_doc: unknown, index: number) => (
       index === 0 ? pg1 : []

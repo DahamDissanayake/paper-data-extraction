@@ -22,17 +22,22 @@ export interface RawQuestion {
  */
 const QUESTION_START = /^\s*(\d{1,2})\s*['.’]\s*(?=\S)/;
 /**
- * Option markers in the FM Abhaya legacy font are the literal ASCII bytes
- * '^' and '&' — that font remaps those two glyph slots to render as an
- * open/close parenthesis around the option digit. This is a font-specific
- * quirk of the source PDF (confirmed on the pg1 fixture: `"^1&"` comes from
- * item font `FMAbhayax`, whereas literal `"(1)"` elsewhere on the page comes
- * from an embedded `TimesNewRomanPSMT` run of ordinary prose). The Task 2
- * transliterator correctly leaves '^' and '&' untouched (Latin passthrough),
- * so the parser must recognize this marker shape directly rather than a
- * literal '(' ')' pair.
+ * An option marker reaches the parser in one of two shapes and both must be
+ * accepted:
+ *
+ *  - `(1)`..`(4)` — real Unicode parentheses. This is what the FM Abhaya
+ *    transliterator emits (that font remaps the '^' and '&' glyph slots to
+ *    an open/close parenthesis, so the map converts them), and it is also
+ *    what OCR produces: `recognisePage` tags its items `font: 'OCR'`, for
+ *    which `mapForFont` returns null, so OCR text is never transliterated
+ *    and arrives with genuine parentheses already.
+ *  - `^1&`..`^4&` — the raw FM byte pair, still seen whenever text reaches
+ *    the parser without going through a legacy map (an untransliterated
+ *    fixture, or a future FM font whose table lacks the '^'/'&' entries).
+ *
+ * Matching only the `^N&` form silently dropped every OCR'd question.
  */
-const OPTION_MARKER = /\^\s*([1-4])\s*&/g;
+const OPTION_MARKER = /(?:\^\s*[1-4]\s*&|\(\s*[1-4]\s*\))/g;
 
 function mergeBBox(a: BBox, b: BBox): BBox {
   const x = Math.min(a.x, b.x);
@@ -76,10 +81,24 @@ export function splitLegacyQuestion(rawLegacy: string): { stem: string; options:
   return { stem: before.trim(), options: options.map((o) => o.trim()) };
 }
 
+/**
+ * How much bigger than this question's typical line gap a vertical gap has
+ * to be before a line stops counting as a continuation of it. Page 1 of the
+ * reference paper wraps at ~15pt and puts its page number ~60pt below the
+ * last option, so anything past ~2.5x is page furniture, not text.
+ */
+const CONTINUATION_GAP_FACTOR = 2.5;
+
+/** A line that is nothing but an integer — a page number, never option text. */
+const BARE_INTEGER_LINE = /^\d{1,3}$/;
+
 export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] {
   const questions: RawQuestion[] = [];
   let current: RawQuestion | null = null;
   let stemParts: string[] = [];
+  /** y of the last line consumed by `current`, and the gaps seen within it. */
+  let prevY = 0;
+  let gaps: number[] = [];
 
   const flush = () => {
     if (!current) return;
@@ -87,6 +106,13 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
     if (current.options.length > 0) questions.push(current);
     current = null;
     stemParts = [];
+    gaps = [];
+  };
+
+  /** Median gap seen so far inside the current question. */
+  const typicalGap = () => {
+    const sorted = [...gaps].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
   };
 
   for (const line of lines) {
@@ -95,6 +121,7 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
 
     if (opener) {
       flush();
+      prevY = line.y;
       const rest = line.text.slice(opener[0].length);
       const { before, options } = splitOptions(rest);
       current = {
@@ -104,13 +131,30 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
         bbox: line.bbox,
         pageIndex,
         rawLegacy: legacy,
-        unmapped: 0,
+        unmapped: line.unmapped,
       };
       stemParts = before.trim() ? [before.trim()] : [];
       continue;
     }
 
     if (!current) continue;
+
+    // A bare page number never belongs to an option, whatever its spacing.
+    if (BARE_INTEGER_LINE.test(line.text.trim())) {
+      flush();
+      continue;
+    }
+
+    // Nor does anything separated from the question by an anomalous gap:
+    // wrapped continuation lines sit one line-height below, page furniture
+    // sits much further.
+    const gap = prevY - line.y;
+    if (gaps.length > 0 && gap > CONTINUATION_GAP_FACTOR * typicalGap()) {
+      flush();
+      continue;
+    }
+    gaps.push(gap);
+    prevY = line.y;
 
     const { before, options } = splitOptions(line.text);
     // A continuation line either extends the stem or adds more options.
@@ -126,6 +170,7 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
     }
     current.bbox = mergeBBox(current.bbox, line.bbox);
     current.rawLegacy += legacy;
+    current.unmapped += line.unmapped;
   }
 
   flush();

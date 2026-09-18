@@ -12,11 +12,22 @@ export function groupIntoLines(items: PositionedItem[], yTolerance = 3): Line[] 
 
   return buckets.map((bucket) => {
     const sorted = bucket.sort((a, b) => a.x - b.x);
-    const text = sorted.map((i) => transliterateItem(i.str, i.font).text).join('');
+    const converted = sorted.map((i) => transliterateItem(i.str, i.font));
+    const text = converted.map((c) => c.text).join('');
+    // Carried forward, not discarded: the parser totals it per question and
+    // the pipeline turns a non-zero total into the 'unmapped-glyph' flag.
+    const unmapped = converted.reduce((n, c) => n + c.unmapped, 0);
     const x = Math.min(...sorted.map((i) => i.x));
     const right = Math.max(...sorted.map((i) => i.x + i.w));
     const y = Math.max(...sorted.map((i) => i.y));
     const h = Math.max(...sorted.map((i) => i.h));
-    return { text, items: sorted, y, bbox: { x, y, w: right - x, h }, source: 'text' as const };
+    return {
+      text,
+      items: sorted,
+      y,
+      bbox: { x, y, w: right - x, h },
+      source: 'text' as const,
+      unmapped,
+    };
   });
 }

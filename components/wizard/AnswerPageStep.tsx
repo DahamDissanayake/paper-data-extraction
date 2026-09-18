@@ -6,8 +6,10 @@ import { Thumb } from './Thumb';
 import { useWizardPages } from './useWizardPages';
 import { useSessionStore } from '@/lib/session/store';
 import { suggestAnswerPage } from '@/lib/extract/suggest';
+import { resumeAnswerChoice } from '@/lib/extract/resume';
 
 export function AnswerPageStep() {
+  const session = useSessionStore((s) => s.session);
   const patch = useSessionStore((s) => s.patch);
   const { pages, error } = useWizardPages();
   const [selected, setSelected] = useState<number | null>(null);
@@ -17,8 +19,13 @@ export function AnswerPageStep() {
   useEffect(() => {
     if (pages && !initialized.current) {
       initialized.current = true;
-      setSelected(suggestAnswerPage(pages));
+      // Same rule as step 2: a prior decision wins over a fresh suggestion,
+      // including an explicit "this paper has no answer sheet".
+      const resumed = resumeAnswerChoice(session, suggestAnswerPage(pages));
+      setSelected(resumed.answerPage);
+      setNoAnswerSheet(resumed.hasNoAnswerSheet);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages]);
 
   function handleNoAnswerSheet(v: boolean) {

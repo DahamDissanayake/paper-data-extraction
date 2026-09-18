@@ -37,3 +37,36 @@ describe('assemble', () => {
     expect(r.questions.every((q) => !q.flags.includes('ocr'))).toBe(true);
   });
 });
+
+/**
+ * The spec's safety net: "Unmapped codes emit ⟨?⟩ and set an
+ * unmapped-glyph flag on the question, so an incorrect or missing font
+ * table is visible rather than silent." RawQuestion.unmapped used to be
+ * hardcoded to 0, so this flag could never fire.
+ */
+describe('assemble surfaces unmapped glyphs', () => {
+  const fm = (str: string, y: number): PositionedItem =>
+    ({ str, x: 40, y, w: 300, h: 12, font: 'XSUOWA+FMAbhayax' });
+
+  const options = '^1&l^2&l^3&l^4&l';
+
+  it("flags a question built from text the font table cannot convert", () => {
+    const r2 = assemble(
+      [{ index: 0, items: [fm("01'wxlZZ", 700), fm(options, 684)], images: [] }],
+      null,
+      true,
+    );
+    expect(r2.questions).toHaveLength(1);
+    expect(r2.questions[0].flags).toContain('unmapped-glyph');
+  });
+
+  it('does not flag a question whose text converts cleanly', () => {
+    const r2 = assemble(
+      [{ index: 0, items: [fm("01'wxl", 700), fm(options, 684)], images: [] }],
+      null,
+      true,
+    );
+    expect(r2.questions).toHaveLength(1);
+    expect(r2.questions[0].flags).not.toContain('unmapped-glyph');
+  });
+});

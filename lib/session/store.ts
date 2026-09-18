@@ -61,6 +61,13 @@ export const useSessionStore = create<State>((set, get) => ({
   patch: (p) => {
     const cur = get().session;
     if (!cur) return;
+    // An immediate write supersedes any debounced one still in flight —
+    // otherwise the pending timer fires afterwards and writes a second,
+    // redundant copy of the same session.
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
     get().setSession({ ...cur, ...p });
   },
   patchDebounced: (p) => {

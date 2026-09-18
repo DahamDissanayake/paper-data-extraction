@@ -1,0 +1,99 @@
+{
+  "source": "test/fixtures/GRADE-11-HISTORY.pdf",
+  "howVerified": "Each page was rendered to a PNG with the PDF's own embedded FM font program (pdf.js exposes only the legacy character codes, but the drawn glyphs are the intended Sinhala) and read visually at scale 3-10, then aligned character by character against the legacy string at the same position in the pg*.items.json fixtures. Nothing here was transcribed from the pipeline's own output without that check.",
+  "coverage": "Questions 1-7, which are all of page 1 — the only question page with a committed item fixture. The plan asks for Q1-16; Q8-16 live on pages 2-3, whose items are not dumped by test/tools/dump-fixtures.mjs, so they are NOT covered here.",
+  "whitespaceNote": "Stems and options are recorded as PRINTED on the page. Two places on page 1 show a space that does not exist in the PDF's text layer (between the Roman numeral 'I' and the Sinhala that follows it in Q6 option 3 and the Q7 stem, and inside 'ඉන්දියානු සාගරයේ' in Q7 option 3, which is a single text item). Inter-item spacing comes from text-layer item boundaries, not from the transliterator, so the assertion in test/extract/golden.test.ts compares with whitespace removed.",
+  "questions": [
+    {
+      "number": 1,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "ශ්‍රී ලංකාව පිළිබඳ තොරතුරු සඳහන් වන දකුණු ඉන්දියාවේ දී රචිත ග්‍රන්ථයක් වන්නේ,",
+      "options": [
+        "යාල්පාන වෛපමාලෛ",
+        "ශේගරාසශේකරමාලෛ",
+        "මණිමේකලයි",
+        "කෛලායමාලෛ"
+      ]
+    },
+    {
+      "number": 2,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "අපේ සංස්කෘතික ඉතිහාසය පෙන්නුම් කෙරෙන ජීවමාන සාක්ෂි ලෙස ගත හැක්කේ,",
+      "options": [
+        "නටබුන් ය.",
+        "චිත්‍ර මූර්ති කැටයම් ය.",
+        "පුරාවස්තු ය.",
+        "කාසි ය."
+      ]
+    },
+    {
+      "number": 3,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "මැටිඔරු සුසානවල පැරණි බව ස්ථීර කරන ප්‍රබල සාක්ෂියකි.",
+      "options": [
+        "ගල්මෙවලම් බහුලව තැන්පත් කර තිබීම.",
+        "මිනිස් භෂ්මාවශේෂ තැන්පත් කිරීම.",
+        "ඔවුන් විසින් පරිහරණය කරන ලද භාණ්ඩ කොටස් තැන්පත් කිරීම.",
+        "මිනිස් ඇටසැකිලි තැන්පත් කර තිබීම."
+      ]
+    },
+    {
+      "number": 4,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "ඓතිහාසික මූලාශ්‍රවල ධීවරයන් විසූ ගම් හඳුන්වා ඇත්තේ කුමන නමකින් ද?",
+      "options": [
+        "කසීකාරගාම",
+        "පට්ටනගාම",
+        "කේවට්ට ගාම",
+        "නියම්ගම්"
+      ]
+    },
+    {
+      "number": 5,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "පැරණි කාලයේ කුල යන පදයෙන් අදහස් වූයේ,",
+      "options": [
+        "කුලයයි.",
+        "පවුලයි.",
+        "ගමික යි.",
+        "ගෘහපති යි."
+      ]
+    },
+    {
+      "number": 6,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "සමස්ත ලෝකයටම අධිපති යන සංකල්පය භාවිත කළ රජ වූයේ,",
+      "options": [
+        "කූටකණ්ණාභය",
+        "මහසෙන්",
+        "I කාශ්‍යප",
+        "නිශ්ශංකමල්ල"
+      ]
+    },
+    {
+      "number": 7,
+      "pageIndex": 0,
+      "kind": "straight",
+      "stem": "I විජයබාහු රජු පොළොන්නරුව තම පාලන මධ්‍යස්ථානය ලෙස තෝරා ගැනීමට බලපෑ වැදගත්ම සාධකය වූයේ,",
+      "options": [
+        "චෝල පාලනය නිසා අනුරාධපුරය විනාශයට පත්ව තිබීම යි.",
+        "අනුරාධපුරයට වඩා පොළොන්නරුව සශ්‍රීක ප්‍රදේශයක් වීමයි.",
+        "ඉන්දියානු සාගරයේ බටහිර ප්‍රදේශ මූලික කොට පැවති අන්තර්ජාතික වෙළඳාම් නැගෙනහිර ඉන්දියානු සාගර කලාපයට මාරු වීම යි.",
+        "අනුරාධපුරයට වඩා පොළොන්නරුව ආරක්ෂිත ස්ථානයක් වීම යි."
+      ]
+    }
+  ],
+  "answerKeyNote": "The verified 40-question key from the plan's Verified Source Facts. Ground truth — never 'corrected' from intuition.",
+  "answerKey": {
+    "1": 3, "2": 2, "3": 1, "4": 3, "5": 2, "6": 4, "7": 3, "8": 3, "9": 1, "10": 4,
+    "11": 2, "12": 4, "13": 4, "14": 1, "15": 2, "16": 3, "17": 2, "18": 1, "19": 4, "20": 2,
+    "21": 1, "22": 3, "23": 4, "24": 4, "25": 2, "26": 3, "27": 4, "28": 1, "29": 2, "30": 1,
+    "31": 1, "32": 2, "33": 3, "34": 1, "35": 4, "36": 1, "37": 3, "38": 2, "39": 4, "40": 4
+  }
+}

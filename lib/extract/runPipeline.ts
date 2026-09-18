@@ -17,10 +17,22 @@ import type { ImageRegion } from './classify';
  * `assemble`). This is the "who actually runs the pipeline" glue, called
  * once by `ReviewWorkspace` on mount.
  */
+export interface ExtractionResult {
+  questions: Question[];
+  answerKey: Record<number, OptionIndex>;
+  unresolved: number[];
+  /**
+   * Pages where OCR was needed but threw. The rest of the document still
+   * extracts; these page numbers are surfaced in the review workspace so
+   * the gap is visible rather than a silently short question list.
+   */
+  ocrFailedPages: number[];
+}
+
 export async function runExtraction(
   session: Session,
   sourceBlob: Blob,
-): Promise<{ questions: Question[]; answerKey: Record<number, OptionIndex>; unresolved: number[] }> {
+): Promise<ExtractionResult> {
   const buf = await sourceBlob.arrayBuffer();
   const doc = await loadDocument(buf);
 
@@ -33,9 +45,23 @@ export async function runExtraction(
       const images: ImageRegion[] = imageBBoxes.map((bbox) => ({ pageIndex: index, bbox }));
       // Image-only pages (e.g. pages 9-10 of the reference paper) have no
       // usable text layer; fall back to OCR so they still yield questions.
-      const ocr = needsOcr(textItems);
-      const items = ocr ? await recogniseDocPage(doc, index) : textItems;
-      return { index, items, images, ocr };
+      if (!needsOcr(textItems)) {
+        return { index, items: textItems, images, ocr: false, ocrFailed: false };
+      }
+
+      // Isolated on purpose. The OCR worker and its wasm core can fail to
+      // load for reasons that have nothing to do with the other pages, and
+      // this Promise.all would otherwise reject the whole extraction —
+      // losing pages that never needed OCR at all.
+      try {
+        return { index, items: await recogniseDocPage(doc, index), images, ocr: true, ocrFailed: false };
+      } catch (err) {
+        console.error(`OCR failed for page ${index}; continuing without it`, err);
+        // No items rather than the near-empty text layer that triggered OCR
+        // in the first place: a handful of stray runs off an image-only page
+        // would only manufacture garbage half-questions.
+        return { index, items: [], images, ocr: false, ocrFailed: true };
+      }
     }),
   );
 
@@ -43,5 +69,8 @@ export async function runExtraction(
     ? await getPositionedItems(doc, session.answerPage)
     : null;
 
-  return assemble(pages, answerItems, session.hasNoAnswerSheet);
+  return {
+    ...assemble(pages, answerItems, session.hasNoAnswerSheet),
+    ocrFailedPages: pages.filter((p) => p.ocrFailed).map((p) => p.index),
+  };
 }

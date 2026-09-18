@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSessionStore } from '@/lib/session/store';
 import { runExtraction } from '@/lib/extract/runPipeline';
+import { extractionKey } from '@/lib/extract/resume';
 import { PagePane } from './PagePane';
 import { QuestionCard } from './QuestionCard';
 import { AnswerKeyGrid } from './AnswerKeyGrid';
@@ -40,19 +41,37 @@ export function ReviewWorkspace() {
   // questions (revisiting step 4), the workspace should render "done"
   // immediately rather than flashing "loading" and waiting on an effect.
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>(
-    () => (session && session.questions.length > 0 ? 'done' : 'loading'),
+    () => (session && session.questions.length > 0 && session.extractedFor === extractionKey(session)
+      ? 'done'
+      : 'loading'),
   );
-  const ranRef = useRef(false);
+  /**
+   * The page selection the results on screen belong to — not a plain
+   * "already ran" boolean. A boolean meant that going back, changing the
+   * question or answer pages, and returning to step 4 showed stale results
+   * from the OLD selection; keying off the selection itself re-extracts
+   * whenever it genuinely changes, while a remount or a refresh with the
+   * same selection still does not.
+   */
+  const ranForKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!session || !sourceBlob || ranRef.current) return;
+    if (!session || !sourceBlob) return;
 
-    if (session.questions.length > 0) {
-      ranRef.current = true;
+    const key = extractionKey(session);
+    if (ranForKey.current === key) return;
+
+    // A refresh rehydrates questions from IndexedDB; only trust them when
+    // they belong to the selection that is current now.
+    if (ranForKey.current === null && session.questions.length > 0
+        && session.extractedFor === key) {
+      ranForKey.current = key;
+      setStatus('done');
       return;
     }
 
-    ranRef.current = true;
+    ranForKey.current = key;
+    setStatus('loading');
     (async () => {
       try {
         const result = await runExtraction(session, sourceBlob);
@@ -60,6 +79,8 @@ export function ReviewWorkspace() {
           questions: result.questions,
           answerKey: result.answerKey,
           answerKeyUnresolved: result.unresolved,
+          ocrFailedPages: result.ocrFailedPages,
+          extractedFor: key ?? undefined,
         });
         setStatus('done');
       } catch (err) {
@@ -138,6 +159,7 @@ export function ReviewWorkspace() {
     );
   }
 
+  const ocrFailedPages = session.ocrFailedPages ?? [];
   const answerKeyCount = Object.keys(session.answerKey).length;
   const countFor = (t: Tab) => (t === 'answerKey' ? answerKeyCount : grouped[t].length);
 
@@ -184,6 +206,13 @@ export function ReviewWorkspace() {
           </div>
 
           <div className="flex-1 overflow-auto p-4">
+            {ocrFailedPages.length > 0 && (
+              <p className="border border-[#E5E5E5] px-3 py-2 mb-4 text-sm text-[#0A0A0A]">
+                Text recognition failed on page{ocrFailedPages.length > 1 ? 's' : ''}{' '}
+                {ocrFailedPages.map((p) => p + 1).join(', ')}. Questions on{' '}
+                {ocrFailedPages.length > 1 ? 'those pages' : 'that page'} are missing from this list.
+              </p>
+            )}
             {status === 'loading' && <p className="text-sm text-[#767676]">Extracting questions…</p>}
             {status === 'error' && (
               <p className="text-sm text-[#767676]">Extraction failed. Try re-uploading the PDF.</p>
