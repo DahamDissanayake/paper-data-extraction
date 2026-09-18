@@ -53,6 +53,7 @@ describe('parseQuestions with real parenthesis option markers (OCR shape)', () =
     y,
     bbox: { x: 10, y, w: 300, h: 12 },
     source: 'ocr',
+    unmapped: 0,
   });
 
   it('parses a question whose markers are "(1)".."(4)"', () => {
@@ -63,6 +64,21 @@ describe('parseQuestions with real parenthesis option markers (OCR shape)', () =
     expect(parsedOcr).toHaveLength(1);
     expect(parsedOcr[0].number).toBe(1);
     expect(parsedOcr[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර']);
+  });
+
+  it('totals the unmapped count of every line that built the question', () => {
+    const opener = { ...line('01. කුමන ⟨?⟩ ද?', 700), unmapped: 2 };
+    const options = { ...line('(1) එක (2) දෙක (3) තුන (4) හතර', 684), unmapped: 3 };
+    const [q] = parseQuestions([opener, options], 3);
+    expect(q.unmapped).toBe(5);
+  });
+
+  it('reports zero unmapped when every line converted cleanly', () => {
+    const [q] = parseQuestions(
+      [line('01. කුමන නමකින් ද?', 700), line('(1) එක (2) දෙක (3) තුන (4) හතර', 684)],
+      3,
+    );
+    expect(q.unmapped).toBe(0);
   });
 
   it('still parses the FM literal-glyph marker shape', () => {

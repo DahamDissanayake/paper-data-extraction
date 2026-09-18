@@ -73,6 +73,20 @@ const tokens: Record<string, string> = {
   // flushed short-e prefix vowel, or degrades to plain aa-kaara (ා)
   // otherwise. See convert.ts for the LONG_AA_MARKER mechanism.
   'da': '\uE000', // da ligature — resolves to long-o (ෝ) after a flushed short-e prefix, else degrades to plain ා
+
+  // --- Punctuation and symbol slots ---------------------------------------
+  // The FM fonts remap ASCII punctuation slots too, so these are NOT
+  // passthrough. Each was read off the rendered reference page (page 1 of
+  // test/fixtures/GRADE-11-HISTORY.pdf drawn with its own embedded font)
+  // and matched against the legacy string at the same position.
+  '^': '(', // `^1&` renders as "(1)" — the option markers
+  '&': ')',
+  "'": '.', // `01'` renders as "01." ; `idlaIshls'` renders as "සාක්ෂියකි."
+  '"': ',', // `jkafka"` renders as "වන්නේ," — the 5 stems that end in a comma
+  '(': ':', // `wxlh(` renders as "අංකය:" ; `hq;=hs (` renders as "යුතුයි :"
+  '$': '/', // `ku$ úNd.` renders as "නම/ විභාග"
+  '@': '?', // `kulska o@` renders as "නමකින් ද?"
+  '²': '•', // the round bullet that opens each instruction line
 };
 
 export const FM_ABHAYA: LegacyMap = {

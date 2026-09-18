@@ -88,7 +88,7 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
         bbox: line.bbox,
         pageIndex,
         rawLegacy: legacy,
-        unmapped: 0,
+        unmapped: line.unmapped,
       };
       stemParts = before.trim() ? [before.trim()] : [];
       continue;
@@ -110,6 +110,7 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
     }
     current.bbox = mergeBBox(current.bbox, line.bbox);
     current.rawLegacy += legacy;
+    current.unmapped += line.unmapped;
   }
 
   flush();

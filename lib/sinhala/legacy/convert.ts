@@ -20,6 +20,28 @@ const COMBINE: Record<string, string> = {
 
 const SINHALA_CONSONANT = /[ක-ෆ]/;
 
+/**
+ * The ONLY codepoints a legacy map may leave alone without counting as a
+ * missing mapping.
+ *
+ * "It looked like ASCII" is not evidence that a byte is Latin content: FM
+ * fonts encode Sinhala onto the ASCII range, so `;` is ත, `<` is ළ, `.` is
+ * ග and `^`/`&` are the parenthesis glyphs. Treating the whole
+ * \x20-\x7E range as passthrough therefore hid the common case — a legacy
+ * code with no token — behind silent verbatim output, which is exactly the
+ * failure the spec's `⟨?⟩`/`unmapped-glyph` net exists to prevent.
+ *
+ * The map's `tokens` dict is the source of truth for what is known.
+ * Anything not in it is a candidate miss unless it is one of these three
+ * classes, each confirmed against the rendered reference page:
+ *   - digits `0-9`   — question numbers, "2025", and Task 2's own golden
+ *                      `ld,h meh 01 hs` → `කාලය පැය 01 යි` where "01" stays "01"
+ *   - whitespace     — word and column separators
+ *   - `-`            — the dash in `b;sydih -` → "ඉතිහාසය – I" and
+ *                      `fojk jdr mÍlaIKh - 2025` (both FMSamanthax)
+ */
+const PASSTHROUGH = /[0-9\s-]/;
+
 export function convertLegacy(input: string, map: LegacyMap): { text: string; unmapped: number } {
   // Stage 1+2 — longest-match tokenize and map.
   const pieces: string[] = [];
@@ -34,8 +56,7 @@ export function convertLegacy(input: string, map: LegacyMap): { text: string; un
     }
     if (matched) continue;
     const ch = input[i];
-    // Latin letters, digits, punctuation and whitespace pass through untouched.
-    if (/[\x20-\x7E]/.test(ch)) pieces.push(ch);
+    if (PASSTHROUGH.test(ch)) pieces.push(ch);
     else { pieces.push('⟨?⟩'); unmapped++; }
     i++;
   }

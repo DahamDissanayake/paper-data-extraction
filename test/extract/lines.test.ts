@@ -68,4 +68,21 @@ describe('groupIntoLines', () => {
     ];
     expect(groupIntoLines(items)[0].text).toBe('ඉතිහාසය');
   });
+
+  it('carries the unmapped-glyph count forward instead of discarding it', () => {
+    const items: PositionedItem[] = [
+      { str: 'b;sydih', x: 10, y: 100, w: 40, h: 10, font: 'XSUOWA+FMAbhayax' },
+    ];
+    expect(groupIntoLines(items)[0].unmapped).toBe(0);
+  });
+
+  it('sums the unmapped count across every item on the line', () => {
+    const items: PositionedItem[] = [
+      { str: 'ZZ', x: 10, y: 100, w: 10, h: 10, font: 'XSUOWA+FMAbhayax' },
+      { str: 'Z', x: 30, y: 100, w: 5, h: 10, font: 'XSUOWA+FMAbhayax' },
+      { str: 'Z', x: 50, y: 100, w: 5, h: 10, font: 'BQCOZL+TimesNewRomanPSMT' },
+    ];
+    // Latin items are never converted, so only the three FM bytes count.
+    expect(groupIntoLines(items)[0].unmapped).toBe(3);
+  });
 });
