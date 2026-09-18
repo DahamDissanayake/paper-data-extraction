@@ -44,3 +44,10 @@ next-env.d.ts
 
 # sdd workspace scratch
 .superpowers/
+
+# Tesseract runtime assets copied out of node_modules by
+# scripts/vendor-tesseract.mjs (prebuild/predev). Regenerated, never edited.
+# public/tesseract/lang/sin.traineddata.gz is NOT ignored: it cannot be
+# obtained from node_modules, so it is sourced once and committed.
+/public/tesseract/*.js
+/public/tesseract/core/
