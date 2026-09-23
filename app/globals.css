@@ -49,3 +49,15 @@ html, body { background: var(--color-page); color: var(--color-ink); }
   background: var(--color-ink);
   color: var(--color-page);
 }
+
+/*
+ * Indeterminate loading bar (ProgressBar component) — extraction (OCR
+ * especially, which loads a ~1MB model and recognises each page) has no
+ * known duration or percentage to report, so the bar sweeps continuously
+ * rather than filling to a number.
+ */
+@keyframes progress-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.progress-sweep { animation: progress-sweep 1.1s ease-in-out infinite; }

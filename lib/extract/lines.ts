@@ -20,8 +20,15 @@ const BARE_QUESTION_NUMBER = /^\d{1,2}$/;
  * QUESTION_START relies on them staying glued to tell a real opener apart
  * from a bare header number that starts a line with a genuine space (e.g.
  * "11 ශ්‍රේණිය" — a single item, embedded space, never split like this).
+ *
+ * Used for both the Unicode-converted `Line.text` below and, separately, for
+ * `RawQuestion.rawLegacy` in parser.ts — the raw legacy bytes are split
+ * across the exact same items, so they need the exact same fix: it was
+ * built with a bare `.join('')` that had this bug independently, which is
+ * why "Legacy font" review mode could show two words run together even
+ * after Unicode mode already displayed them correctly spaced.
  */
-function joinItemTexts(texts: string[]): string {
+export function joinItemTexts(texts: string[]): string {
   let out = '';
   for (let i = 0; i < texts.length; i++) {
     const glueToOpener = i === 1 && BARE_QUESTION_NUMBER.test(texts[0]);

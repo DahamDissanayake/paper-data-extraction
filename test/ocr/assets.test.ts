@@ -4,9 +4,9 @@ import path from 'node:path';
 import { TESSERACT_ASSETS } from '@/lib/ocr/tesseract';
 
 /**
- * `createWorker('sin')` with no options fetches its worker script, wasm core
- * and the Sinhala traineddata from cdn.jsdelivr.net at runtime. Every one of
- * those has to come from this app's own origin instead.
+ * `createWorker(langs)` with no options fetches its worker script, wasm core
+ * and the traineddata for each requested language from cdn.jsdelivr.net at
+ * runtime. Every one of those has to come from this app's own origin instead.
  */
 describe('Tesseract runtime assets are self-hosted', () => {
   it('names a local path for the module, worker, core and language data', () => {
@@ -21,8 +21,8 @@ describe('Tesseract runtime assets are self-hosted', () => {
     expect(value).not.toContain('//');
   });
 
-  it('ships the Sinhala traineddata in the repo', () => {
-    const file = path.join('public', TESSERACT_ASSETS.langPath.replace(/^\//, ''), 'sin.traineddata.gz');
+  it.each(['sin.traineddata.gz', 'eng.traineddata.gz'])('ships %s in the repo', (name) => {
+    const file = path.join('public', TESSERACT_ASSETS.langPath.replace(/^\//, ''), name);
     expect(fs.existsSync(file)).toBe(true);
     const bytes = fs.readFileSync(file);
     // gzip magic number — proves it is the real asset, not a placeholder.

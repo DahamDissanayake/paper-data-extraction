@@ -8,6 +8,7 @@ import { QuestionCard } from './QuestionCard';
 import { AnswerKeyGrid } from './AnswerKeyGrid';
 import { ExportBar } from './ExportBar';
 import { Button } from '@/components/ui/Button';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import type { OptionIndex, Question, QuestionKind } from '@/lib/types';
 import type { ExportMode } from '@/lib/export/xlsx';
 
@@ -217,7 +218,9 @@ export function ReviewWorkspace() {
                 {ocrFailedPages.length > 1 ? 'those pages' : 'that page'} are missing from this list.
               </p>
             )}
-            {status === 'loading' && <p className="text-sm text-[#767676]">Extracting questions…</p>}
+            {status === 'loading' && (
+              <ProgressBar label="Extracting questions… pages needing OCR can take a while longer." />
+            )}
             {status === 'error' && (
               <p className="text-sm text-[#767676]">Extraction failed. Try re-uploading the PDF.</p>
             )}

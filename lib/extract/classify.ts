@@ -3,8 +3,8 @@ import type { RawQuestion } from './parser';
 
 export interface ImageRegion { pageIndex: number; bbox: BBox; }
 
-/** An option that is only A–D tokens joined by a conjunction or whitespace. */
-const AD_ONLY = /^[A-D](\s*(?:හා|යා|සහ|,|and)?\s*[A-D])*$/i;
+/** An option that is only A–E tokens joined by a conjunction or whitespace. */
+const AD_ONLY = /^[A-E](\s*(?:හා|යා|සහ|,|and)?\s*[A-E])*$/i;
 
 /** Stem words that mean the question depends on a picture or table. */
 const FIGURE_WORDS = ['රූපය', 'රූපයේ', 'සිතියම', 'සිතියමේ', 'වගුව', 'වගුවේ', 'ප්‍රස්තාරය'];
@@ -14,8 +14,10 @@ function overlaps(a: BBox, b: BBox): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && aBottom < b.y && bBottom < a.y;
 }
 
+const STRAIGHT_OPTION_COUNTS = new Set([4, 5]);
+
 export function classify(q: RawQuestion, images: ImageRegion[]): QuestionKind {
-  if (q.options.length !== 4) return 'special';
+  if (!STRAIGHT_OPTION_COUNTS.has(q.options.length)) return 'special';
   if (q.options.some((o) => AD_ONLY.test(o.trim()))) return 'special';
   // An A/B/C/D enumeration block inside the stem is the Q16 shape.
   // ([\s\S] in place of a dotAll '.' — the repo's ES2017 target rejects the 's' flag.)

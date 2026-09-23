@@ -26,7 +26,7 @@ export function AnswerKeyGrid({ answerKey, unresolved, onSetAnswer }: {
       return;
     }
     const v = Number(raw);
-    if (Number.isInteger(v) && v >= 1 && v <= 4) onSetAnswer(n, v as OptionIndex);
+    if (Number.isInteger(v) && v >= 1 && v <= 5) onSetAnswer(n, v as OptionIndex);
   }
 
   return (
@@ -44,7 +44,7 @@ export function AnswerKeyGrid({ answerKey, unresolved, onSetAnswer }: {
             <input
               type="number"
               min={1}
-              max={4}
+              max={5}
               data-testid={`answerkey-${n}`}
               value={answerKey[n] ?? ''}
               onChange={(e) => handleChange(n, e.target.value)}

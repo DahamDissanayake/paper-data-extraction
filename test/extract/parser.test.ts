@@ -183,4 +183,49 @@ describe('parseQuestions with real parenthesis option markers (OCR shape)', () =
     );
     expect(parsedSpaced).toHaveLength(0);
   });
+
+  /**
+   * Most questions have 4 options, but a 5-option question is not rare
+   * enough to truncate: matching only markers 1-4 silently dropped the 5th
+   * option's text onto the 4th's, as if it were wrapped continuation text.
+   */
+  it('parses all 5 options on a 5-option question', () => {
+    const parsedFive = parseQuestions(
+      [line('01. කුමන නමකින් ද?', 700), line('(1) එක (2) දෙක (3) තුන (4) හතර (5) පහ', 684)],
+      3,
+    );
+    expect(parsedFive).toHaveLength(1);
+    expect(parsedFive[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර', 'පහ']);
+  });
+
+  it('still parses the FM literal-glyph marker shape with 5 options', () => {
+    const parsedFive = parseQuestions(
+      [line('01. කුමන නමකින් ද?', 700), line('^1&එක^2&දෙක^3&තුන^4&හතර^5&පහ', 684)],
+      3,
+    );
+    expect(parsedFive[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර', 'පහ']);
+  });
+});
+
+/**
+ * Real user report: "Legacy font" review mode showed two words run
+ * together with no space, e.g. "අනුරාධපුරයුගයේසිට..." — even though Unicode
+ * mode already showed the same stem correctly spaced. Traced to
+ * `rawLegacy` being built with a bare `line.items.map(i => i.str).join('')`,
+ * bypassing the exact space-insertion fix (joinItemTexts, in lines.ts)
+ * already applied to `Line.text` for this same "pdf.js splits one line into
+ * several items at a font/style change" case.
+ */
+describe('rawLegacy spacing across items split by a font/style change', () => {
+  it('inserts a space in rawLegacy the same way Line.text already does', () => {
+    const items: PositionedItem[] = [
+      { str: "01'wxl", x: 50, y: 700, w: 40, h: 12, font: 'XSUOWA+FMAbhayax' },
+      { str: 'b;sydih', x: 100, y: 700, w: 60, h: 12, font: 'WSZVOB+FMAbabldBold' },
+      { str: '^1&l^2&l^3&l^4&l', x: 50, y: 684, w: 100, h: 12, font: 'XSUOWA+FMAbhayax' },
+    ];
+    const [q] = parseQuestions(groupIntoLines(items), 0);
+    const { stem } = splitLegacyQuestion(q.rawLegacy);
+    // Without the fix this reads "wxlb;sydih" — fused, no space.
+    expect(stem).toBe('wxl b;sydih');
+  });
 });

@@ -51,3 +51,26 @@ describe('extractAnswerKey', () => {
     expect(r.unresolved.length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Most questions have 4 options, but a 5-option question is not rare enough
+ * to exclude. The label/answer disambiguation bootstraps off "a value >= 6
+ * can only be a label, never an answer" (a real answer digit is now 1-5, not
+ * 1-4) — this synthetic page checks that boundary directly, since the real
+ * pg11 fixture never has a 5-option question to exercise it.
+ */
+describe('extractAnswerKey with a 5-option answer', () => {
+  it('resolves a genuine "5" answer instead of mistaking it for a label', () => {
+    const items: PositionedItem[] = [
+      // Label column revealed by a two-digit (>= 6) label elsewhere on the page.
+      { str: '10', x: 60, y: 500, w: 10, h: 10, font: 'FMAbhayax' },
+      { str: '3', x: 84, y: 500, w: 10, h: 10, font: 'FMAbhayax' },
+      // The question this test cares about: label 1, answer 5.
+      { str: '1', x: 60, y: 520, w: 10, h: 10, font: 'FMAbhayax' },
+      { str: '5', x: 84, y: 520, w: 10, h: 10, font: 'FMAbhayax' },
+    ];
+    const result = extractAnswerKey(items);
+    expect(result.key[1]).toBe(5);
+    expect(result.unresolved).toEqual([]);
+  });
+});

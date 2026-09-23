@@ -5,8 +5,6 @@ import type { OptionIndex, Question } from '@/lib/types';
 import type { ExportMode } from '@/lib/export/xlsx';
 import { splitLegacyQuestion } from '@/lib/extract/parser';
 
-const OPTION_NUMBERS: OptionIndex[] = [1, 2, 3, 4];
-
 /**
  * One editable extracted question. The correct-answer control is a
  * `<select>` (not a radio group) so it exposes a single queryable value via
@@ -39,6 +37,15 @@ export function QuestionCard({ question, active, mode, onSelect, onChange }: {
   const stem = mode === 'legacy' ? legacy.stem : question.stem;
   const options = mode === 'legacy' ? legacy.options : question.options;
   const readOnly = mode === 'legacy';
+  // Most questions have 4 options, but a 5-option question is not rare
+  // enough to hide: rendering a fixed 4 slots silently hid a real 5th
+  // option's text from view (it was still there in `question.options`,
+  // just with no input to show or edit it), and offering only 1-4 in the
+  // answer dropdown made a genuine 5th-option answer impossible to record.
+  const optionNumbers: OptionIndex[] = Array.from(
+    { length: options.length },
+    (_, i) => (i + 1) as OptionIndex,
+  );
   // The raw legacy string is plain ASCII remapped onto the source PDF's own
   // legacy font's glyphs — it only reads as Sinhala rendered through that
   // font, not the Unicode font `.sinhala` uses elsewhere.
@@ -95,12 +102,12 @@ export function QuestionCard({ question, active, mode, onSelect, onChange }: {
       />
 
       <div className="flex flex-col gap-2 mb-3">
-        {[0, 1, 2, 3].map((i) => (
+        {options.map((option, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="text-xs text-[#767676] w-4">{i + 1}</span>
             <input
               className={`${textFontClass} flex-1 border border-[#E5E5E5] p-1.5 text-sm read-only:bg-[#FAFAFA] read-only:text-[#767676]`}
-              value={options[i] ?? ''}
+              value={option}
               readOnly={readOnly}
               onChange={readOnly ? undefined : (e) => setOption(i, e.target.value)}
               onClick={stop}
@@ -118,7 +125,7 @@ export function QuestionCard({ question, active, mode, onSelect, onChange }: {
           onChange={(e) => setAnswer(e.target.value)}
         >
           <option value="">—</option>
-          {OPTION_NUMBERS.map((n) => (
+          {optionNumbers.map((n) => (
             <option key={n} value={n}>{n}</option>
           ))}
         </select>

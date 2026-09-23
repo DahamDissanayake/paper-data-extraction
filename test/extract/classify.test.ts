@@ -32,6 +32,11 @@ describe('classify', () => {
     expect(classify({ ...base, options: ['ක', 'ඛ', 'ග'] }, [])).toBe('special');
   });
 
+  it('marks a 5-option question as straight, not special', () => {
+    const q = { ...base, options: ['යාල්පාන', 'සේගරාස', 'මණිමේඛලයි', 'කෛලාය', 'පස්වන'] };
+    expect(classify(q, [])).toBe('straight');
+  });
+
   it('marks a question whose stem references a map as figure', () => {
     const q = { ...base, stem: 'පහත සිතියම බලන්න', options: ['අ', 'ආ', 'ඇ', 'ඈ'] };
     expect(classify(q, [])).toBe('figure');

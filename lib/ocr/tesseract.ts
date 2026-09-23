@@ -9,8 +9,21 @@ const MIN_ITEMS_FOR_TEXT_LAYER = 10;
  * see components/review/PagePane.tsx) because OCR accuracy benefits from
  * extra resolution and this render is never shown to the user, only fed to
  * Tesseract.
+ *
+ * That earlier "3 is the evidence-backed ceiling" conclusion was measured
+ * against clean, vector-rendered canvas text, where extra render scale adds
+ * no real information (the source is already infinite-resolution) — it
+ * doesn't hold for a genuinely scanned source PDF. Directly OCRing a real
+ * scanned exam paper (a ~144 DPI JPEG scan embedded in the PDF, so this
+ * app's own render is the only upsampling step Tesseract ever sees) at
+ * scale 3 vs. 4 showed scale 4 fixing the majority of dropped-comma /
+ * merged-digit errors in dense option lists (e.g. "5,6,7" reading as "56,7"
+ * or "867") and correctly resolving a name line ("ඩබ්ලිව්. ජේ. ජී. බීලිං
+ * ය.") that scale 3 misread. Scale 5-6 tested no better than 4 on the same
+ * real pages, so 4 is the new evidence-backed choice — still not "higher is
+ * always better", just a higher ceiling than clean synthetic text implied.
  */
-const OCR_RENDER_SCALE = 2;
+const OCR_RENDER_SCALE = 4;
 
 export function needsOcr(items: PositionedItem[]): boolean {
   return items.length < MIN_ITEMS_FOR_TEXT_LAYER;
@@ -21,7 +34,7 @@ export function needsOcr(items: PositionedItem[]): boolean {
  * origin out of `public/tesseract/` (populated by
  * `scripts/vendor-tesseract.mjs`, which `prebuild`/`predev` run).
  *
- * `createWorker('sin')` with no options defaults to fetching all three of
+ * `createWorker(langs)` with no options defaults to fetching all three of
  * these from cdn.jsdelivr.net. Those defaults live in a dependency's
  * compiled output rather than in this project's source, so they survived a
  * source-only grep and shipped in a real `out/` build — a direct breach of
@@ -35,7 +48,7 @@ export const TESSERACT_ASSETS = {
   workerPath: '/tesseract/worker.min.js',
   /** Passed as `corePath`; a directory — the worker picks the SIMD variant. */
   corePath: '/tesseract/core',
-  /** Passed as `langPath`; holds sin.traineddata.gz. */
+  /** Passed as `langPath`; holds sin.traineddata.gz and eng.traineddata.gz. */
   langPath: '/tesseract/lang',
 } as const;
 
@@ -44,21 +57,34 @@ interface TesseractWorker {
   terminate: () => Promise<unknown>;
 }
 
+interface TesseractModule {
+  createWorker: (
+    langs: string,
+    oem?: number,
+    options?: Record<string, unknown>,
+  ) => Promise<TesseractWorker>;
+}
+
 /**
  * Loads the VENDORED tesseract.js bundle by URL rather than importing the
  * npm package. `webpackIgnore` leaves the import for the browser to resolve
  * against this origin; bundling `tesseract.js` instead would pull its
  * jsdelivr `workerPath` default straight into the app chunk, where
  * scripts/check-no-network.mjs would (rightly) fail the build.
+ *
+ * The bundle's only top-level export is `default` (the whole tesseract.js
+ * module, CJS-wrapped) — there's no named `createWorker` export. Destructuring
+ * `createWorker` straight off the dynamic import's result therefore always
+ * threw "createWorker is not a function" at runtime, on every OCR attempt;
+ * nothing in this codebase's tests actually exercises the real vendored file
+ * (it uses `self`, a browser-only global, so it can't even load under
+ * vitest's node environment), which is how this shipped unnoticed.
  */
-async function loadTesseract(): Promise<{
-  createWorker: (
-    langs: string,
-    oem?: number,
-    options?: Record<string, unknown>,
-  ) => Promise<TesseractWorker>;
-}> {
-  return import(/* webpackIgnore: true */ TESSERACT_ASSETS.module);
+async function loadTesseract(): Promise<TesseractModule> {
+  const mod = (await import(/* webpackIgnore: true */ TESSERACT_ASSETS.module)) as {
+    default?: TesseractModule;
+  } & TesseractModule;
+  return mod.default ?? mod;
 }
 
 export interface OcrWord {
@@ -97,8 +123,42 @@ export function ocrWordToItem(
 }
 
 /**
- * Tesseract and its ~1MB Sinhala traineddata load only when this is called,
- * which keeps them out of the initial bundle.
+ * Tesseract's Sinhala model reliably inserts a spurious ZERO WIDTH
+ * NON-JOINER (U+200C) right after certain word-final consonant+virama
+ * endings — confirmed by OCRing known Sinhala text and diffing the result
+ * byte-for-byte: it looked visually identical to the source, but "සඳහන්"
+ * came back as "සඳහන්‌" and "ග්‍රන්ථයක්" as "ග්‍රන්ථයක්‌" (an invisible extra
+ * character before the following space, in both cases). No text this app
+ * produces elsewhere ever contains a ZWNJ — only ZWJ, for genuine
+ * rakaransaya/yansaya conjuncts (see convert.ts) — so a ZWNJ in OCR'd text
+ * is always this artifact, never real content. Left in, it silently broke
+ * exact-text matching downstream: option markers, line grouping, anything
+ * comparing OCR'd words against an expected string.
+ */
+const SPURIOUS_OCR_ZWNJ = /‌/g;
+
+/** Strips the spurious ZWNJ described above from one recognized word's text. */
+export function cleanOcrText(text: string): string {
+  return text.replace(SPURIOUS_OCR_ZWNJ, '');
+}
+
+/**
+ * Both language packs, always loaded together. This source paper's own
+ * pages already mix scripts in ordinary running text — Roman-numeral part
+ * headers, English acronyms, English watermark lines alongside Sinhala
+ * body text — and the pdf.js text layer handles that correctly per item
+ * (mapForFont only converts FM-tagged items; a Latin-font item is untouched
+ * either way). OCR had no equivalent: `createWorker('sin')` loads ONLY the
+ * Sinhala model, which has no representation for Latin letters at all, so
+ * it forces its best (wrong) Sinhala-glyph guess onto every English
+ * character on an image-only page instead of leaving it as English. Requesting
+ * `'sin+eng'` recognizes both scripts within the same page and word.
+ */
+const OCR_LANGS = 'sin+eng';
+
+/**
+ * Tesseract and its ~5MB combined Sinhala+English traineddata load only
+ * when this is called, which keeps them out of the initial bundle.
  *
  * `scale` must be the scale the canvas was rendered at, because the returned
  * items are in PDF points at scale 1 regardless.
@@ -108,7 +168,7 @@ export async function recognisePage(
   scale: number = OCR_RENDER_SCALE,
 ): Promise<PositionedItem[]> {
   const { createWorker } = await loadTesseract();
-  const worker = await createWorker('sin', undefined, {
+  const worker = await createWorker(OCR_LANGS, undefined, {
     workerPath: TESSERACT_ASSETS.workerPath,
     corePath: TESSERACT_ASSETS.corePath,
     langPath: TESSERACT_ASSETS.langPath,
@@ -117,6 +177,7 @@ export async function recognisePage(
     const { data } = await worker.recognize(canvas);
     const words = (data as { words?: OcrWord[] }).words ?? [];
     return words
+      .map((w) => ({ ...w, text: cleanOcrText(w.text) }))
       .filter((w) => w.text.trim())
       .map((w) => ocrWordToItem(w, canvas.height, scale));
   } finally {

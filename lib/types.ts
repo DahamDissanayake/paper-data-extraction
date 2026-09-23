@@ -1,4 +1,5 @@
-export type OptionIndex = 1 | 2 | 3 | 4;
+/** Most MCQs here have 4 options, but a 5-option question is not rare enough to break on. */
+export type OptionIndex = 1 | 2 | 3 | 4 | 5;
 
 /**
  * A rectangle in **PDF user-space points at scale 1, origin bottom-left**

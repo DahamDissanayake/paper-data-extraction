@@ -26,10 +26,14 @@
  *    `out/` contains no external host at all, which is what lets
  *    scripts/check-no-network.mjs be a zero-tolerance check instead of an
  *    allowlist that would have let this very bug through.
- * 3. Leaves public/tesseract/lang/sin.traineddata.gz alone. That one asset
- *    cannot be obtained from node_modules, so it is committed to the repo
- *    (1.1MB) — sourced once, exactly like the self-hosted Noto Sans Sinhala
- *    woff2 files. Sourcing is not runtime loading.
+ * 3. Leaves public/tesseract/lang/{sin,eng}.traineddata.gz alone. Neither
+ *    asset can be obtained from node_modules, so both are committed to the
+ *    repo (1.1MB, 2.8MB) — sourced once, exactly like the self-hosted Noto
+ *    Sans Sinhala woff2 files. Sourcing is not runtime loading. OCR recognizes
+ *    'sin+eng' together (see lib/ocr/tesseract.ts) since this paper's own
+ *    pages mix scripts in ordinary running text; Sinhala-only recognition
+ *    forced its best (wrong) Sinhala-glyph guess onto every English
+ *    character instead of leaving it as English.
  *
  * Runs automatically from `prebuild` and `predev`. Copied files are
  * gitignored; only the traineddata is committed.
@@ -55,7 +59,10 @@ const ASSETS = [
   ['node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js', 'core/tesseract-core-lstm.wasm.js', false],
 ];
 
-const TRAINEDDATA = path.join(OUT, 'lang', 'sin.traineddata.gz');
+const TRAINEDDATA = [
+  path.join(OUT, 'lang', 'sin.traineddata.gz'),
+  path.join(OUT, 'lang', 'eng.traineddata.gz'),
+];
 
 let failed = false;
 
@@ -90,11 +97,18 @@ for (const [from, to, rewrite] of ASSETS) {
   console.log(`vendor-tesseract: copied ${to} (${occurrences} CDN default(s) rewritten)`);
 }
 
-if (!fs.existsSync(TRAINEDDATA)) {
+const TRAINEDDATA_SOURCE_URL = {
+  'sin.traineddata.gz': 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/sin/4.0.0_best_int/sin.traineddata.gz',
+  'eng.traineddata.gz': 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz',
+};
+
+for (const file of TRAINEDDATA) {
+  if (fs.existsSync(file)) continue;
+  const name = path.basename(file);
   console.error(
-    'vendor-tesseract: public/tesseract/lang/sin.traineddata.gz is missing.\n' +
+    `vendor-tesseract: public/tesseract/lang/${name} is missing.\n` +
     '  It is a committed repo asset. If it really has to be re-sourced, fetch it ONCE\n' +
-    '  from https://cdn.jsdelivr.net/npm/@tesseract.js-data/sin/4.0.0_best_int/sin.traineddata.gz\n' +
+    `  from ${TRAINEDDATA_SOURCE_URL[name]}\n` +
     '  (the exact file tesseract.js would otherwise fetch at runtime) and commit it.',
   );
   failed = true;

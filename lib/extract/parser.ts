@@ -1,4 +1,5 @@
 import type { BBox, Line } from '@/lib/types';
+import { joinItemTexts } from './lines';
 
 export interface RawQuestion {
   number: number;
@@ -33,19 +34,22 @@ const QUESTION_START = /^\s*(\d{1,2})(?:\s*['.’]\s*(?=\S)|(?=[^\s\d]))/;
  * An option marker reaches the parser in one of two shapes and both must be
  * accepted:
  *
- *  - `(1)`..`(4)` — real Unicode parentheses. This is what the FM Abhaya
+ *  - `(1)`..`(5)` — real Unicode parentheses. This is what the FM Abhaya
  *    transliterator emits (that font remaps the '^' and '&' glyph slots to
  *    an open/close parenthesis, so the map converts them), and it is also
  *    what OCR produces: `recognisePage` tags its items `font: 'OCR'`, for
  *    which `mapForFont` returns null, so OCR text is never transliterated
  *    and arrives with genuine parentheses already.
- *  - `^1&`..`^4&` — the raw FM byte pair, still seen whenever text reaches
+ *  - `^1&`..`^5&` — the raw FM byte pair, still seen whenever text reaches
  *    the parser without going through a legacy map (an untransliterated
  *    fixture, or a future FM font whose table lacks the '^'/'&' entries).
  *
  * Matching only the `^N&` form silently dropped every OCR'd question.
+ * Most questions have 4 options, but a 5th isn't rare enough to truncate:
+ * matching only 1-4 silently dropped a real 5th option's text onto the
+ * 4th's, as if it were wrapped continuation text.
  */
-const OPTION_MARKER = /(?:\^\s*[1-4]\s*&|\(\s*[1-4]\s*\))/g;
+const OPTION_MARKER = /(?:\^\s*[1-5]\s*&|\(\s*[1-5]\s*\))/g;
 
 function mergeBBox(a: BBox, b: BBox): BBox {
   const x = Math.min(a.x, b.x);
@@ -125,7 +129,10 @@ export function parseQuestions(lines: Line[], pageIndex: number): RawQuestion[] 
 
   for (const line of lines) {
     const opener = QUESTION_START.exec(line.text);
-    const legacy = line.items.map((i) => i.str).join('');
+    // Same fix as Line.text (see joinItemTexts in lines.ts): these are the
+    // same items, split the same way, so raw legacy bytes need the same
+    // space-insertion or two words fuse together with nothing between them.
+    const legacy = joinItemTexts(line.items.map((i) => i.str));
 
     if (opener) {
       flush();

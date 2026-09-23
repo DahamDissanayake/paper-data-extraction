@@ -23,16 +23,18 @@ export function extractAnswerKey(items: PositionedItem[]): AnswerKeyResult {
     .filter((i) => /^\d+$/.test(i.str.trim()))
     .map((i) => ({ n: parseInt(i.str.trim(), 10), x: i.x, y: i.y }));
 
-  // Values >= 5 can only be labels, so they reveal the label columns without
-  // any ambiguity against answer digits, which are always 1-4.
+  // Values >= 6 can only be labels, so they reveal the label columns without
+  // any ambiguity against answer digits, which are always 1-5 (most
+  // questions have 4 options, but a 5-option question is not rare enough to
+  // exclude — see OptionIndex in lib/types.ts).
   const labelColumns: number[] = [];
-  for (const x of ints.filter((i) => i.n >= 5).map((i) => i.x).sort((a, b) => a - b)) {
+  for (const x of ints.filter((i) => i.n >= 6).map((i) => i.x).sort((a, b) => a - b)) {
     if (!labelColumns.some((c) => Math.abs(c - x) <= COLUMN_TOLERANCE)) labelColumns.push(x);
   }
 
   const inLabelColumn = (x: number) => labelColumns.some((c) => Math.abs(c - x) <= COLUMN_TOLERANCE);
   const labels = ints.filter((i) => inLabelColumn(i.x));
-  const answers = ints.filter((i) => !inLabelColumn(i.x) && i.n >= 1 && i.n <= 4);
+  const answers = ints.filter((i) => !inLabelColumn(i.x) && i.n >= 1 && i.n <= 5);
 
   const key: Record<number, OptionIndex> = {};
   const unresolved: number[] = [];
