@@ -143,8 +143,67 @@ const derivedGolden: [string, string][] = [
   [',l=K fhdokak', 'ලකුණ යොදන්න'],
 ];
 
+/**
+ * Pairs derived investigating a real user report of a PDF with a text layer
+ * that produced nothing (a separate parser.ts bug, since fixed) and, on
+ * other pages, "⟨?⟩" replacing real letters. Read against the rendered PDF
+ * (its own embedded FM font, via PyMuPDF) and cross-checked against 2-4
+ * independent, unrelated real words per byte before trusting any of them —
+ * see lib/sinhala/legacy/maps/fmAbhaya.ts for the full per-byte trace.
+ */
+const grade10SinhalaGolden: [string, string][] = [
+  ['l¿ wl=frka', 'කළු අකුරෙන්'], // "in bold BLACK letters" — confirms ¿
+  ['l¿;r', 'කළුතර'], // Kalutara, the district — confirms ¿ again
+  ['hd¿fjla', 'යාළුවෙක්'], // "a friend" — confirms ¿ a third time
+  ['uqøs;', 'මුද්‍රිත'], // "printed" — confirms ø
+  ['iuqøh', 'සමුද්‍රය'], // "the ocean" — confirms ø again
+  ['tÈßùr irÉpkaø', 'එදිරිවීර සරත්චන්ද්‍ර'], // Ediriweera Sarathchandra — confirms É and ø together
+  ['iqÿiq', 'සුදුසු'], // "suitable" — confirms ÿ
+  ['isÿjkakla', 'සිදුවන්නක්'], // "something that occurs" — confirms ÿ again
+  ['iqÿ ,m', 'සුදු ලප'], // "white spots" — confirms ÿ a third time
+  ['Wu;=', 'උමතු'], // "insane" — confirms W
+  ['Wla; mo folla yd wkqla; mo folla', 'උක්ත පද දෙකක් හා අනුක්ත පද දෙකක්'], // "two උක්ත words and two අනුක්ත words" — confirms W against its own grammatical antonym in the same sentence
+  ['W.=r foig <x', 'උගුර දෙසට ළං'], // "towards the throat" — confirms W again
+  ['i`oyd', 'සඳහා'], // "for" — confirms the `o -> ඳ ligature
+  ['i`oyka', 'සඳහන්'], // "mentioned" — the SAME word as the existing i|yka
+  //                        golden pair above, through the font's other ඳ byte
+  ['u`. yeÍu', 'මඟ හැරීම'], // "to miss the mark" (idiom) — confirms `. -> ඟ
+  ['zzl=re,a,dZZ hkak', '““කුරුල්ලා”” යන්න'], // the word "කුරුල්ලා" (bird) in doubled quotes — confirms z/Z
+  ['lKaGP', 'කණ්ඨජ'], // "guttural" — one of a 4-term places-of-articulation list; confirms G, P
+  ['uQ¾OP', 'මූර්ධජ'], // "retroflex" — confirms G, P again
+  ['´IaGP', 'ඕෂ්ඨජ'], // "labial" — confirms G, P a third time, and confirms ´
+  [';d¨P', 'තාලුජ'], // "palatal" — confirms P a fourth time
+  ['mdGh', 'පාඨය'], // "the lesson/text" — confirms G independently of the list above
+  ['ióm', 'සමීප'], // "near/close" — confirms ó
+  ['fiakl ììf,a', 'සේනක බිබිලේ'], // Dr. Senaka Bibile — confirms ì
+  ['Yío', 'ශබ්ද'], // "sound" — confirms í
+  [',efí', 'ලැබේ'], // "is awarded" ("ලකුණු 40ක් ලැබේ") — confirms í again
+  ['wCIr', 'අක්ෂර'], // "letters" — confirms C
+  ['wdrCIl', 'ආරක්ෂක'], // "protective" — confirms C again
+  ['/iaùug', 'රැස්වීමට'], // "to assemble" — confirms /
+  ['T!IO', 'ඖෂධ'], // "medicine" — confirms the T! ligature (and, via the
+  //                    same word, backs up `o and `. above)
+  ['fi!kao¾hfhka', 'සෞන්දර්යයෙන්'], // "by [natural] beauty" — confirms the
+  //                                    standalone ! -> ෟ reading
+  ['^w&" ^wd&" ^b&" ^B&', '(අ), (ආ), (ඉ), (ඊ)'], // the independent-vowel
+  //                                                 listing order — confirms B
+  ['my; ±lafjk', 'පහත දක්වෙන'], // "shown below" — confirms ±
+  ['¥m;aj,', 'දූපත්වල'], // "of the islands" — confirms ¥
+  ['¥Ilfhl=', 'දූෂකයෙකු'], // "a corrupter" — confirms ¥ again
+  ['m%;sM,', 'ප්‍රතිඵල'], // "results" — confirms M
+  ['ksIaM,', 'නිෂ්ඵල'], // "futile" — confirms M again
+  ['f,aLlhd', 'ලේඛකයා'], // "the writer" — confirms L
+  ['m%uqL;ajh', 'ප්‍රමුඛත්වය'], // "prominence" — confirms L again
+  ['oË;d', 'දක්ෂතා'], // "skill" — confirms Ë
+  ['mÍËKh', 'පරීක්ෂණය'], // "examination" (this paper's own title) — confirms Ë again
+  ['úfÊr;ak', 'විජේරත්න'], // a common Sri Lankan surname (Wijeratne), appearing twice — confirms Ê
+  ['Èks`ÿf.a', 'දිනිඳුගේ'], // "Dinindu's" — confirms the `ÿ -> ඳු nasalization ligature, read directly off the rendered glyph
+  ['lem ù isàu', 'කැප වී සිටීම'], // "being devoted" — confirms à
+  ['W;a;r fkd§ isàu', 'උත්තර නොදී සිටීම'], // "remaining without answering" — confirms à again
+];
+
 describe('convertLegacy / FM Abhaya', () => {
-  for (const [legacy, unicode] of [...golden, ...planGolden, ...derivedGolden]) {
+  for (const [legacy, unicode] of [...golden, ...planGolden, ...derivedGolden, ...grade10SinhalaGolden]) {
     it(`converts ${legacy}`, () => {
       expect(convertLegacy(legacy, FM_ABHAYA).text).toBe(unicode);
     });
@@ -179,14 +238,18 @@ describe('convertLegacy / FM Abhaya', () => {
    * the 'unmapped-glyph' flag the spec designed for exactly this.
    */
   describe('unmapped ASCII in the legacy range', () => {
+    // '\x01' (a control byte no legacy map ever assigns) stands in for "any
+    // byte with no token" here. 'Z' filled this role until it was confirmed
+    // to be the closing curly quote (see the golden pairs above) — a real
+    // token, so it can no longer demonstrate an unmapped gap.
     it('counts an ASCII byte that has no token instead of passing it through', () => {
-      const r = convertLegacy('Z', FM_ABHAYA);
+      const r = convertLegacy('\x01', FM_ABHAYA);
       expect(r.unmapped).toBe(1);
       expect(r.text).toBe('⟨?⟩');
     });
 
     it('counts unmapped bytes mixed into otherwise-convertible text', () => {
-      const r = convertLegacy('b;sZydih', FM_ABHAYA);
+      const r = convertLegacy('b;s\x01ydih', FM_ABHAYA);
       expect(r.unmapped).toBe(1);
       expect(r.text).toContain('⟨?⟩');
     });

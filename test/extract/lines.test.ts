@@ -77,12 +77,50 @@ describe('groupIntoLines', () => {
   });
 
   it('sums the unmapped count across every item on the line', () => {
+    // '\x01' stands in for "any byte with no token" (see the same swap in
+    // test/sinhala/convert.test.ts — 'Z' used to fill this role until it was
+    // confirmed to be a real closing-quote token).
     const items: PositionedItem[] = [
-      { str: 'ZZ', x: 10, y: 100, w: 10, h: 10, font: 'XSUOWA+FMAbhayax' },
-      { str: 'Z', x: 30, y: 100, w: 5, h: 10, font: 'XSUOWA+FMAbhayax' },
-      { str: 'Z', x: 50, y: 100, w: 5, h: 10, font: 'BQCOZL+TimesNewRomanPSMT' },
+      { str: '\x01\x01', x: 10, y: 100, w: 10, h: 10, font: 'XSUOWA+FMAbhayax' },
+      { str: '\x01', x: 30, y: 100, w: 5, h: 10, font: 'XSUOWA+FMAbhayax' },
+      { str: '\x01', x: 50, y: 100, w: 5, h: 10, font: 'BQCOZL+TimesNewRomanPSMT' },
     ];
     // Latin items are never converted, so only the three FM bytes count.
     expect(groupIntoLines(items)[0].unmapped).toBe(3);
+  });
+
+  /**
+   * Real user report: pdf.js splits one visual line into several items
+   * wherever the PDF restarts a text-showing operator — here, a bold-styled
+   * mid-sentence word ("lr weÍu", font FMAbabldBold) breaks the sentence
+   * into three items. The real x/y/w values below are read straight from
+   * the reported PDF's own page 1. Naively concatenating item text glued
+   * "...ඇරීම" onto "දිනිඳුගේ..." with no space, producing
+   * "ඇරීමදිනිඳුගේ" — a single, wrong, run-together word.
+   */
+  it('inserts a space between items that pdf.js split at a font/style change', () => {
+    const items: PositionedItem[] = [
+      { str: "YsIH kdhlhska mjrk jevj, §", x: 84.97, y: 508.91, w: 149.7, h: 12, font: 'WBQLYM+FMAbhayax' },
+      { str: 'lr weÍu', x: 237.33, y: 508.91, w: 42.79, h: 12, font: 'UHDOMO+FMAbabldBold' },
+      { str: "Èks`ÿf.a isß; h'", x: 282.78, y: 508.91, w: 75.41, h: 12, font: 'WBQLYM+FMAbhayax' },
+    ];
+    expect(groupIntoLines(items)[0].text).toBe('ශිෂ්‍ය නායකයින් පවරන වැඩවල දී කර ඇරීම දිනිඳුගේ සිරිත ය.');
+  });
+
+  /**
+   * The one case where two items must stay glued with NO inserted space:
+   * a question-number opener ("01") and the stem's first word are separate
+   * items with no space in the source PDF (only visual padding) — see the
+   * lib/extract/lines.ts joinItemTexts doc comment. parser.ts's
+   * QUESTION_START relies on this staying glued to tell a real opener apart
+   * from a bare header number with a genuine embedded space (e.g. a single
+   * item "11 fY%aKsh" -> "11 ශ්‍රේණිය", never split like this).
+   */
+  it('does not insert a space between a bare question-number opener and the stem', () => {
+    const items: PositionedItem[] = [
+      { str: '01', x: 56.69, y: 508.91, w: 9.91, h: 12, font: 'WBQLYM+FMAbhayax' },
+      { str: "YsIH kdhlhska", x: 84.97, y: 508.91, w: 149.7, h: 12, font: 'WBQLYM+FMAbhayax' },
+    ];
+    expect(groupIntoLines(items)[0].text.startsWith('01ශිෂ්‍ය')).toBe(true);
   });
 });

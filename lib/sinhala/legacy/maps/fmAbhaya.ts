@@ -40,6 +40,14 @@ const tokens: Record<string, string> = {
   't': 'එ', // එ   tla tla -> එක එක
   'ft': 'ඓ', // ඓ  ft;sydisl -> ඓතිහාසික (kombuva + එ reads as the single ඓ)
   'T': 'ඔ', // ඔ   Tng -> ඔබට, Tjqka -> ඔවුන්, ueáTre -> මැටිඔරු
+  'T!': 'ඖ', // ඖ  T!IO -> ඖෂධ (medicine, "for the people's ඖෂධ" — the same
+  //               sentence '`o'/'`.' were derived from). A two-byte
+  //               ligature: 'T' alone stays ඔ; only 'T!' together is ඖ.
+  'W': 'උ', // උ   Wu;= -> උමතු, Wla; -> උක්ත (paired against wkqla; -> අනුක්ත
+  //              in the same sentence), W.=r -> උගුර, WmÈk -> උපදින
+  '´': 'ඕ', // ඕ   ´IaGP -> ඕෂ්ඨජ (see the places-of-articulation list under 'G')
+  'B': 'ඊ', // ඊ   ^w&" ^wd&" ^b&" ^B& -> (අ) (ආ) (ඉ) (ඊ), the standard
+  //              Sinhala independent-vowel listing order continued one slot
 
   // --- Consonants ---------------------------------------------------------
   'l': 'ක', // ක   wxl -> අංක
@@ -52,6 +60,9 @@ const tokens: Record<string, string> = {
   ';': 'ත', // ත   b;sydih -> ඉතිහාසය
   ':': 'ථ', // ථ   .%ka:hla -> ග්‍රන්ථයක්, uOHia:dkh -> මධ්‍යස්ථානය
   'o': 'ද', // ද   ,o -> ලද, mofhka -> පදයෙන්
+  '±': 'ද', // ද   my; ±lafjk -> පහත දක්වෙන ("shown below" — appears
+  //              identically 4 times across the paper). A second redundant
+  //              ද slot, alongside 'o'.
   'O': 'ධ', // ධ   wOHdmk -> අධ්‍යාපන, idOlh -> සාධකය
   'k': 'න', // න   m%Yak -> ප්‍රශ්න
   '|': 'ඳ', // ඳ   ms<sn| -> පිළිබඳ, i|yka -> සඳහන්, fj<|dï -> වෙළඳාම්
@@ -69,6 +80,12 @@ const tokens: Record<string, string> = {
   'i': 'ස', // ස   b;sydih -> ඉතිහාසය
   'y': 'හ', // හ   b;sydih -> ඉතිහාසය
   '<': 'ළ', // ළ   ms<s;=re -> පිළිතුරු
+  'G': 'ඨ', // ඨ   lKaGP -> කණ්ඨජ, uQ¾OP -> මූර්ධජ, ´IaGP -> ඕෂ්ඨජ (three of
+  //              the five places-of-articulation terms in the same option
+  //              list), mdGh -> පාඨය
+  'P': 'ජ', // ජ   confirmed against the same four-term places-of-articulation
+  //              list: lKaGP -> කණ්ඨජ, uQ¾OP -> මූර්ධජ, ´IaGP -> ඕෂ්ඨජ,
+  //              ;d¨P -> තාලුජ
 
   // --- Dependent vowel signs and other marks ------------------------------
   'x': 'ං', // ං   wxl -> අංක
@@ -82,6 +99,10 @@ const tokens: Record<string, string> = {
   'Q': 'ූ', // ූ   uQ¾;s -> මූර්ති, jQfha -> වූයේ
   '+': 'ූ', // ූ   l+glKaKdNh -> කූටකණ්ණාභය (second uu-glyph slot)
   'D': 'ෘ', // ෘ   ixialD;sl -> සංස්කෘතික, .Dym;s -> ගෘහපති
+  '!': 'ෟ', // ෟ   gayanukitta — fi!kao¾hfhka -> සෞන්දර්යයෙන් ("by [natural]
+  //              beauty" — the COMBINE table already turns a flushed ෙ
+  //              prefix immediately followed by ෟ into ෞ; see 'T!' above for
+  //              the same vowel sign fused into the independent-vowel slot).
   'f': 'ෙ', // ෙ   f;dr;=re -> තොරතුරු (a prefix vowel: stored before its consonant)
   'ff': 'ෛ', // ෛ  ffl,dhudff, -> කෛලායමාලෛ (kombu deka, also a prefix vowel)
   'a': A, //        ්   m%Yak -> ප්‍රශ්න; after a kombuva this is the diga stroke (see convert.ts COMBINE)
@@ -115,6 +136,82 @@ const tokens: Record<string, string> = {
   'ú': 'වි', // වි  úiska -> විසින්, úNd. -> විභාග
   'ù': 'වී', // වී  ùuhs -> වීමයි
   'õ': `ව${A}`, // ව්  bkaÈhdfõ -> ඉන්දියාවේ
+  '¿': 'ළු', // ළු  l¿ wl=frka -> කළු අකුරෙන් (bold BLACK letters), l¿;r -> කලුතර
+  //           misspells as "කලුතර" without the retroflex ළ, but the same
+  //           GRADE 10 SINHALA paper's own hd¿fjla -> යාළුවෙක් (a friend)
+  //           and district name l¿;r -> කළුතර (Kalutara) both need ළ, so ¿
+  //           is ළු, not ලු.
+  'ø': `ද${A}${ZWJ}ර`, // ද්‍ර  uqøs; -> මුද්‍රිත (printed), iuqøh -> සමුද්‍රය (ocean),
+  //                       tÈßùr ir[É]pka[ø] -> එදිරිවීර සරත්[ත්]චන්ද්‍ර (the
+  //                       author Ediriweera Sarathchandra, named on the essay
+  //                       page of the same paper)
+  'É': `ත${A}`, // ත්  ir[É]pkaø, read against the same Sarathchandra name above:
+  //               the only gap between confirmed "සර" and confirmed "චන්ද්‍ර"
+  //               is "ත්".
+  'ÿ': 'දු', // දු  iqÿiq -> සුදුසු (suitable), isÿjkakla -> සිදුවන්නක් (something
+  //            that occurs), iqÿ ,m -> සුදු ලප (white spots) — three
+  //            unrelated real words, all needing ද+ු, not the single ු this
+  //            module first (wrongly) guessed from Èks`ÿf.a alone.
+  'ó': 'මී', // මී  ióm -> සමීප (close/near), i[ó]mùu -> සමීපවීම (approaching),
+  //             i[ó]m ld¾hhka -> සමීප කාර්යයන් (closely-related functions)
+  'ì': 'බි', // බි  fiakl ìì f,a -> සේනක බිබිලේ (Dr. Senaka Bibile, the
+  //             pharmacologist named for Sri Lanka's essential-medicines
+  //             policy — the same sentence's ¥m;aj, ck;dj i`oyd T!IO ...
+  //             ("... medicine ... for the people ...") is literally about
+  //             that policy)
+  'í': `බ${A}`, // බ්  Y[í]o -> ශබ්ද (sound, a recurring word on this
+  //                phonetics-themed page), ,e[f][í]' -> ලැබේ (is received/
+  //                awarded — "ලකුණු 40ක් ලැබේ")
+  'C': `ක${A}`, // ක්  w[C]Ir -> අක්ෂර (letters), wdr[C]Il -> ආරක්ෂක
+  //                (protective), wOH[C]I;=ud -> අධ්‍යක්ෂතුමා (the Director)
+  '/': 'රැ', // රැ  [/]iaùug -> රැස්වීමට (to assemble), [/]iaùfï -> රැස්වීමේ
+  //             (of the meeting), [/]ils -> රැසකි (is a multitude)
+  '¥': 'දූ', // දූ  ¥m;aj, -> දූපත්වල ("of the islands" — same "for the
+  //             people's ඖෂධ" sentence '`o'/'T!' were derived from),
+  //             [¥]Ilfhl= -> දූෂකයෙකු (a corrupter), fh[¥] -> යෙදූ (used, as
+  //             in "ඔබ යෙදූ වචන" — "the words you used")
+  'M': 'ඵ', // ඵ   m%;s[M], -> ප්‍රතිඵල (results), ksIa[M], -> නිෂ්ඵල
+  //              (futile), u,a [M], -> මල්ඵල (flowers and fruit)
+  'L': 'ඛ', // ඛ   f,a[L]lhd -> ලේඛකයා (the writer), m%uq[L];ajh ->
+  //              ප්‍රමුඛත්වය (prominence), f,a[L]k -> ලේඛන (writings), .S
+  //              [L]Kavfha -> ගී ඛණ්ඩයේ ("of the song section")
+  'Ë': `ක${A}ෂ`, // ක්ෂ  o[Ë];d -> දක්ෂතා (skill), mÍ[Ë]Kh -> පරීක්ෂණය
+  //                  (examination — this exact paper's own cover-page title,
+  //                  "තෙවන වාර පරීක්ෂණය 2025")
+  'Ê': `ජ${A}`, // ජ්  úf[Ê]r;ak -> විජේරත්න, a common Sri Lankan surname,
+  //                 appearing twice independently. The COMBINE table turns
+  //                 the flushed ෙ prefix immediately followed by this
+  //                 token's own virama into ේ, the same mechanism 'õ' and
+  //                 'ï' already rely on.
+  'à': 'ටී', // ටී  lem ù isà[u] -> කැප වී සිටීම (being devoted; the 's' just
+  //              before 'à' already supplies the ි), W;a;r fkd§ isàu ->
+  //              උත්තර නොදී සිටීම ("remaining without answering" — two
+  //              unrelated sentences, same word "සිටීම")
+
+  // --- Nasalized-consonant two-character tokens ---------------------------
+  // A leading backtick prenasalizes the consonant byte that follows it — the
+  // legacy keyboard's way of reaching the ⁿ-prefixed Sinhala letters that
+  // don't have their own dedicated byte the way ඹ ('U') and ඳු ('÷') do.
+  // Confirmed against three independent, unrelated dictionary words: i`oyd
+  // -> සඳහා ("for"), i`oyka -> සඳහන් (matches the existing i|yka golden pair
+  // testing the SAME word through the OTHER ඳ byte, '|' — this font has two
+  // redundant ඳ slots), and u`. -> මඟ (the idiom මඟ හැරීම, "to miss the
+  // mark" — NOT මග, the tatsama spelling with plain ග).
+  '`o': 'ඳ', // ඳ  i`oyd -> සඳහා, i`oyka -> සඳහන්
+  '`.': 'ඟ', // ඟ  u`. yeÍu -> මඟ හැරීම
+  '`§': 'ඳී', // ඳී  ne`§ -> බැඳී (bound/tied) — the same nasalization prefix,
+  //               but here combining with the ALREADY-two-codepoint '§'
+  //               ligature (දී) rather than a bare consonant byte, so it
+  //               gets its own explicit 2-byte entry rather than a computed
+  //               combine rule.
+  '`ÿ': 'ඳු', // ඳු  Èks`ÿf.a -> දිනිඳුගේ (a person's name, "Dinindu's" — the
+  //               proper name this whole nasalization-prefix family was
+  //               first noticed in). Confirmed by rendering the PDF's own
+  //               embedded font at high resolution and reading the glyph's
+  //               distinctive ඳ loop directly, rather than guessed: the
+  //               same nasalization prefix as `o and `., here combining
+  //               with 'ÿ' (දු) instead of a bare consonant byte, exactly
+  //               like `§ combines with the already-two-codepoint '§'.
 
   // --- `da` two-character token -------------------------------------------
   // The `da` ligature is the discriminator between two otherwise-similar
@@ -140,6 +237,9 @@ const tokens: Record<string, string> = {
   '$': '/', // `ku$ úNd.` renders as "නම/ විභාග"
   '@': '?', // `kulska o@` renders as "නමකින් ද?"
   '²': '•', // the round bullet that opens each instruction line
+  'z': '“', // “  zzl=re,a,dZZ -> "කුරුල්ලා" (doubled for a bolder quote
+  //                 mark), zkg;sZ -> "නටති"
+  'Z': '”', // ”  closing partner of 'z', same evidence
 };
 
 export const FM_ABHAYA: LegacyMap = {

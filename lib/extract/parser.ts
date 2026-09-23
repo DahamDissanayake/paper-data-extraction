@@ -11,16 +11,24 @@ export interface RawQuestion {
 }
 
 /**
- * A question opens with a 1- or 2-digit number followed by a '.' or '''
- * marker. The marker is required (not optional): the source page also
- * contains bare header numbers (e.g. a garbled "duration" line reading
- * "11 <text>") that are NOT question openers, and only the punctuation
- * distinguishes a real numbered question from one of those. In the actual
- * fixture the marker is glued directly to the stem with no space
- * (e.g. "01'ශ්‍රී..."), so trailing whitespace after it is optional, not
- * required.
+ * A question opens with a 1- or 2-digit number followed by either:
+ *  - a '.' or ''' marker (optionally with surrounding whitespace), or
+ *  - no marker at all, with the number glued straight onto the stem's first
+ *    character — real extracted text from some source papers reads
+ *    "01ශිෂ්‍ය නායකයින්..." with no separator character between the number
+ *    and the Sinhala text at all (nothing in the underlying PDF text stream
+ *    marks the boundary; it's conveyed purely by bold styling on the
+ *    number, which text extraction doesn't preserve).
+ *
+ * The marker/glue is required (not optional some other way): the source
+ * page also contains bare header numbers (e.g. a garbled "duration" line
+ * reading "11 <text>") that are NOT question openers, and only a SPACE
+ * follows their number — neither branch above matches a space, so they stay
+ * excluded. A run of 3+ digits is also excluded (the lookahead requires the
+ * next character not be a digit), so a longer embedded number can't be
+ * mistaken for a truncated 2-digit opener.
  */
-const QUESTION_START = /^\s*(\d{1,2})\s*['.’]\s*(?=\S)/;
+const QUESTION_START = /^\s*(\d{1,2})(?:\s*['.’]\s*(?=\S)|(?=[^\s\d]))/;
 /**
  * An option marker reaches the parser in one of two shapes and both must be
  * accepted:

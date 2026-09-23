@@ -51,8 +51,11 @@ describe('assemble surfaces unmapped glyphs', () => {
   const options = '^1&l^2&l^3&l^4&l';
 
   it("flags a question built from text the font table cannot convert", () => {
+    // '\x01' stands in for "any byte with no token" (see the same swap in
+    // test/sinhala/convert.test.ts — 'Z' used to fill this role until it was
+    // confirmed to be a real closing-quote token).
     const r2 = assemble(
-      [{ index: 0, items: [fm("01'wxlZZ", 700), fm(options, 684)], images: [] }],
+      [{ index: 0, items: [fm('01\'wxl\x01\x01', 700), fm(options, 684)], images: [] }],
       null,
       true,
     );

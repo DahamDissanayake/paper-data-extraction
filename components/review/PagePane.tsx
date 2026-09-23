@@ -10,23 +10,31 @@ const SCALE = 1.4;
 interface Overlay { top: number; left: number; width: number; height: number; }
 
 /**
- * Renders the source page for the currently active question at a readable
- * scale (1.4x — the wizard's thumbnail hook uses 0.3x, far too small to
- * verify text against), with an outline over the question's bbox.
+ * Renders every page of the source PDF, stacked and scrollable, with an
+ * outline over the active question's bbox on whichever page it's on.
+ *
+ * Used to render only the active question's page in a single canvas, which
+ * made it impossible to browse the rest of the source PDF while reviewing —
+ * scrolling did nothing past that one page. Rendering the whole document up
+ * front (typical exam papers run well under 20 pages) and scrolling to the
+ * active question's position within it fixes that while keeping the same
+ * "jump to the selected question" behavior.
  *
  * The PDF coordinate origin is bottom-left (y grows upward), while CSS
- * `top` grows downward from the canvas's top-left. So the outline's `top`
- * is `(unscaledPageHeight - bbox.y) * SCALE`, where `unscaledPageHeight` is
- * the page's height in PDF units (i.e. its viewport height at scale 1).
+ * `top` grows downward from a page's own canvas. So within a page, the
+ * outline's `top` is `(unscaledPageHeight - bbox.y) * SCALE`, where
+ * `unscaledPageHeight` is that page's height in PDF units (i.e. its
+ * viewport height at scale 1) — computed per page since a source PDF can
+ * mix page sizes.
  */
 export function PagePane({ activeQuestion }: { activeQuestion: Question | null }) {
   const sourceBlob = useSessionStore((s) => s.sourceBlob);
-  const session = useSessionStore((s) => s.session);
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRefs = useRef(new Map<number, HTMLCanvasElement>());
+  const pageWrapperRefs = useRef(new Map<number, HTMLDivElement>());
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
-  const [renderedPage, setRenderedPage] = useState<number | null>(null);
-  const [unscaledHeight, setUnscaledHeight] = useState<number | null>(null);
+  const [numPages, setNumPages] = useState(0);
+  const [pageHeights, setPageHeights] = useState<Record<number, number>>({});
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -36,7 +44,9 @@ export function PagePane({ activeQuestion }: { activeQuestion: Question | null }
       try {
         const buf = await sourceBlob.arrayBuffer();
         const d = await loadDocument(buf);
-        if (!cancelled) setDoc(d);
+        if (cancelled) return;
+        setDoc(d);
+        setNumPages(d.numPages);
       } catch {
         if (!cancelled) setError('Could not load the source PDF.');
       }
@@ -44,70 +54,87 @@ export function PagePane({ activeQuestion }: { activeQuestion: Question | null }
     return () => { cancelled = true; };
   }, [sourceBlob]);
 
-  const targetPage = activeQuestion?.pageIndex ?? session?.questionPages[0] ?? null;
-
+  // Renders every page in order into its own canvas (the refs already exist
+  // once `numPages` drives the JSX below). Sequential, not parallel, so a
+  // page's wrapper div has its final on-screen height — and therefore a
+  // stable offsetTop — by the time any LATER page (or the scroll effect
+  // below) needs to measure it.
   useEffect(() => {
-    if (!doc || targetPage == null) return;
+    if (!doc || numPages === 0) return;
     let cancelled = false;
     (async () => {
       try {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        // renderPageToCanvas already has the page; it hands back the scale-1
-        // viewport so this doesn't call doc.getPage() a second time for it.
-        const unscaled = await renderPageToCanvas(doc, targetPage, SCALE, canvas);
-        if (cancelled) return;
-        setUnscaledHeight(unscaled.height);
-        setRenderedPage(targetPage);
-        // Clear any error from an earlier page: without this a stale message
-        // lingered above a page that had just rendered perfectly well.
-        setError('');
+        for (let pageIndex = 0; pageIndex < numPages; pageIndex++) {
+          const canvas = canvasRefs.current.get(pageIndex);
+          if (!canvas) continue;
+          const unscaled = await renderPageToCanvas(doc, pageIndex, SCALE, canvas);
+          if (cancelled) return;
+          setPageHeights((prev) => ({ ...prev, [pageIndex]: unscaled.height }));
+        }
+        if (!cancelled) setError('');
       } catch {
-        if (!cancelled) setError('Could not render the page.');
+        if (!cancelled) setError('Could not render the PDF.');
       }
     })();
     return () => { cancelled = true; };
-  }, [doc, targetPage]);
+  }, [doc, numPages]);
 
   // Pure derived value — no setState needed, this recomputes on every
   // render where its inputs change.
   const overlay = useMemo<Overlay | null>(() => {
-    if (!activeQuestion || unscaledHeight == null || activeQuestion.pageIndex !== renderedPage) {
-      return null;
-    }
+    if (!activeQuestion) return null;
+    const height = pageHeights[activeQuestion.pageIndex];
+    if (height == null) return null;
     const { bbox } = activeQuestion;
     return {
-      top: (unscaledHeight - bbox.y) * SCALE,
+      top: (height - bbox.y) * SCALE,
       left: bbox.x * SCALE,
       width: bbox.w * SCALE,
       height: bbox.h * SCALE,
     };
-  }, [activeQuestion, unscaledHeight, renderedPage]);
+  }, [activeQuestion, pageHeights]);
 
   // The one genuine side effect here: scroll the pane so the highlighted
-  // question is in view.
+  // question is in view, wherever its page sits in the stacked document.
   useEffect(() => {
-    if (!overlay) return;
-    containerRef.current?.scrollTo({ top: Math.max(overlay.top - 96, 0), behavior: 'smooth' });
-  }, [overlay]);
+    if (!activeQuestion || !overlay) return;
+    const wrapper = pageWrapperRefs.current.get(activeQuestion.pageIndex);
+    if (!wrapper || !containerRef.current) return;
+    const top = wrapper.offsetTop + overlay.top - 96;
+    containerRef.current.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
+  }, [activeQuestion, overlay]);
 
   return (
     <div ref={containerRef} className="h-full overflow-auto bg-[#FAFAFA]">
       {error && <p className="text-sm text-[#767676] p-4">{error}</p>}
-      <div className="relative inline-block m-4">
-        <canvas ref={canvasRef} className="block shadow-sm" />
-        {overlay && (
-          <div
-            className="absolute border-2 border-[#0A0A0A] pointer-events-none"
-            style={{ top: overlay.top, left: overlay.left, width: overlay.width, height: overlay.height }}
-          />
-        )}
+      <div className="flex flex-col items-start">
+        {Array.from({ length: numPages }, (_, pageIndex) => (
+          <div key={pageIndex} className="m-4">
+            <div className="text-xs text-[#767676] mb-1">Page {pageIndex + 1}</div>
+            <div
+              ref={(el) => {
+                if (el) pageWrapperRefs.current.set(pageIndex, el);
+                else pageWrapperRefs.current.delete(pageIndex);
+              }}
+              className="relative inline-block"
+            >
+              <canvas
+                ref={(el) => {
+                  if (el) canvasRefs.current.set(pageIndex, el);
+                  else canvasRefs.current.delete(pageIndex);
+                }}
+                className="block shadow-sm"
+              />
+              {activeQuestion?.pageIndex === pageIndex && overlay && (
+                <div
+                  className="absolute border-2 border-[#0A0A0A] pointer-events-none"
+                  style={{ top: overlay.top, left: overlay.left, width: overlay.width, height: overlay.height }}
+                />
+              )}
+            </div>
+          </div>
+        ))}
       </div>
-      {renderedPage != null && (
-        <div className="sticky bottom-0 left-0 bg-white/90 border-t border-[#E5E5E5] text-xs text-[#767676] px-3 py-1.5">
-          Page {renderedPage + 1}
-        </div>
-      )}
     </div>
   );
 }

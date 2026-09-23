@@ -152,4 +152,35 @@ describe('parseQuestions with real parenthesis option markers (OCR shape)', () =
     );
     expect(parsedFm[0].options).toEqual(['එක', 'දෙක', 'තුන', 'හතර']);
   });
+
+  /**
+   * Some source papers glue the question number directly onto the stem with
+   * no '.'/''' marker at all — e.g. real extracted text
+   * "01ශිෂ්‍ය නායකයින් පවරන..." (no separator character between "01" and
+   * "ශිෂ්‍ය"). Every question on the page opens this way, so requiring a
+   * literal marker character drops the entire page (0 questions found).
+   */
+  it('parses an opener with no separator, glued straight onto a Sinhala stem', () => {
+    const parsedGlued = parseQuestions(
+      [line('01ශිෂ්‍ය නායකයින් පවරන කාරණය', 700), line('(1) එක (2) දෙක (3) තුන (4) හතර', 684)],
+      3,
+    );
+    expect(parsedGlued).toHaveLength(1);
+    expect(parsedGlued[0].number).toBe(1);
+    expect(parsedGlued[0].stem).toBe('ශිෂ්‍ය නායකයින් පවරන කාරණය');
+  });
+
+  /**
+   * A number glued to more digits, or followed by a space, must NOT be
+   * mistaken for this shape — the existing "bare header number" false
+   * positive (e.g. a garbled "11 <text>" duration line) relies on the space
+   * to stay excluded, and a 3-digit run must not be truncated to 2.
+   */
+  it('does not treat a spaced-out number line as a glued opener', () => {
+    const parsedSpaced = parseQuestions(
+      [line('11 කාලය පැය 01 යි', 700), line('(1) එක (2) දෙක (3) තුන (4) හතර', 684)],
+      3,
+    );
+    expect(parsedSpaced).toHaveLength(0);
+  });
 });
