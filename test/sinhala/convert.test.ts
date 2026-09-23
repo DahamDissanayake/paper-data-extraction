@@ -168,7 +168,11 @@ const grade10SinhalaGolden: [string, string][] = [
   ['i`oyka', 'සඳහන්'], // "mentioned" — the SAME word as the existing i|yka
   //                        golden pair above, through the font's other ඳ byte
   ['u`. yeÍu', 'මඟ හැරීම'], // "to miss the mark" (idiom) — confirms `. -> ඟ
-  ['zzl=re,a,dZZ hkak', '““කුරුල්ලා”” යන්න'], // the word "කුරුල්ලා" (bird) in doubled quotes — confirms z/Z
+  ['zzl=re,a,dZZ hkak', '‘‘කුරුල්ලා’’ යන්න'], // the word "කුරුල්ලා" (bird) in
+  //                                              doubled single quotes — confirms z/Z
+  ['zkg;sZ hk l%shd mofha zkgZ hkq', '‘නටති’ යන ක්‍රියා පදයේ ‘නට’ යනු'], // confirms z/Z again with single (not doubled) quotes
+  ['foaYmd,k{fhl=', 'දේශපාලනඥයෙකු'], // "a politician" — confirms {
+  ['j._h', 'වගීය'], // confirms _
   ['lKaGP', 'කණ්ඨජ'], // "guttural" — one of a 4-term places-of-articulation list; confirms G, P
   ['uQ¾OP', 'මූර්ධජ'], // "retroflex" — confirms G, P again
   ['´IaGP', 'ඕෂ්ඨජ'], // "labial" — confirms G, P a third time, and confirms ´
@@ -200,6 +204,22 @@ const grade10SinhalaGolden: [string, string][] = [
   ['Èks`ÿf.a', 'දිනිඳුගේ'], // "Dinindu's" — confirms the `ÿ -> ඳු nasalization ligature, read directly off the rendered glyph
   ['lem ù isàu', 'කැප වී සිටීම'], // "being devoted" — confirms à
   ['W;a;r fkd§ isàu', 'උත්තර නොදී සිටීම'], // "remaining without answering" — confirms à again
+  ['läirlug', 'කඩිසරකමට'], // "to industriousness" (contrasts with option 1's
+  //                            අලසකමට, "to laziness") — confirms ä
+  ['cdähg uQäh jf.a', 'ජාඩියට මූඩිය වගේ'], // "like a lid to its jar" — a
+  //                                          known Sinhala idiom, confirms ä again
+  ['wfòfj,', 'අඹෙවෙල'], // Ambewela, a well-known hill-country town — confirms
+  //                          ò is a second byte for ඹ (alongside 'U')
+  ['wE,shdj', 'ඈලියාව'], // confirms the wE -> ඈ independent vowel, the same
+  //                          construction as wd -> ආ and we -> ඇ
+  ['brla w¢kak', 'ඉරක් අඳින්න'], // "draw a line" — confirms ¢
+  ['bß we¢ moj,', 'ඉරි ඇඳි පදවල'], // "in the underlined words" — confirms ¢ again
+  ['my; ±lafjk fþoh', 'පහත දක්වෙන ඡේදය'], // "the paragraph shown below" — confirms þ
+  ['Ys,amSh olaI;d iy fþo fnod fn§u', 'ශිල්පීය දක්ෂතා සහ ඡේද බෙදා බෙදීම'], // confirms þ again
+  ['f>daId iys; l,n, ùÈj,ska', 'ඝෝෂා සහිත කලබල වීදිවලින්'], // "noise-filled chaotic streets" — confirms >
+  ['uydpd¾h tÈßùr ir;apJø', 'මහාචාර්ය එදිරිවීර සරත්චන්ද්‍ර'], // "Professor Ediriweera Sarathchandra" — confirms J
+  ['n<,a¨;a idlals Æ', 'බළල්ලුත් සාක්කි !'], // sentence-final exclamation — confirms Æ
+  ['Tjqyq iqjm;a fõjdæ', 'ඔවුහු සුවපත් වේවා!'], // "may they be well!" — confirms æ
 ];
 
 describe('convertLegacy / FM Abhaya', () => {

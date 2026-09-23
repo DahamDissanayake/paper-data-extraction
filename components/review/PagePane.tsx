@@ -6,6 +6,12 @@ import { loadDocument, renderPageToCanvas } from '@/lib/pdf/loader';
 import type { Question } from '@/lib/types';
 
 const SCALE = 1.4;
+/** A line's ascender height above its own baseline, in PDF points (see the overlay's `top` comment below). */
+const ASCENT_PAD = 9;
+/** Cosmetic breathing room around the highlight box, in screen pixels (post-scale). */
+const BOX_PAD = 6;
+/** Bottom gets less than the other three sides — ASCENT_PAD already gives the top extra room, so a matching bottom pad reads as too much empty space below the last option. */
+const BOX_PAD_BOTTOM = 2;
 
 interface Overlay { top: number; left: number; width: number; height: number; }
 
@@ -87,21 +93,59 @@ export function PagePane({ activeQuestion }: { activeQuestion: Question | null }
     if (height == null) return null;
     const { bbox } = activeQuestion;
     return {
-      top: (height - bbox.y) * SCALE,
-      left: bbox.x * SCALE,
-      width: bbox.w * SCALE,
-      height: bbox.h * SCALE,
+      // `bbox.y` is the TOP line's text baseline, not the visual top of its
+      // glyphs (pdf.js's item.transform[5], carried straight through by
+      // getPositionedItems/groupIntoLines/mergeBBox). Anchoring the box's
+      // top there cut straight through the first line's ascenders — visibly
+      // confirmed: the outline started mid-way down "05." instead of above
+      // it. ASCENT_PAD approximates a line's ascender height above its own
+      // baseline (items on this kind of paper run ~12pt tall; ~75% of that
+      // is a reasonable ascent) and extends the box by the same amount so
+      // the bottom edge — already correct, since mergeBBox's `h` reaches
+      // down to the bottom line's descent — doesn't move.
+      // BOX_PAD is separate from ASCENT_PAD above: it's pure cosmetic
+      // breathing room (a visibly roomier selection box), applied evenly
+      // on all four sides in already-scaled screen pixels, rather than a
+      // correction for what the text bounds actually mean.
+      top: (height - bbox.y - ASCENT_PAD) * SCALE - BOX_PAD,
+      left: bbox.x * SCALE - BOX_PAD,
+      width: bbox.w * SCALE + BOX_PAD * 2,
+      height: (bbox.h + ASCENT_PAD) * SCALE + BOX_PAD + BOX_PAD_BOTTOM,
     };
   }, [activeQuestion, pageHeights]);
 
-  // The one genuine side effect here: scroll the pane so the highlighted
-  // question is in view, wherever its page sits in the stacked document.
+  // The one genuine side effect here: scroll the pane so the ENTIRE
+  // highlighted question is in view, wherever its page sits in the stacked
+  // document.
+  //
+  // Deliberately uses getBoundingClientRect diffing, not wrapper.offsetTop:
+  // offsetTop is relative to the nearest POSITIONED ancestor, and nothing
+  // between the page wrapper and this scroll container sets position, so it
+  // resolved against <body> instead — a page halfway down a long document
+  // produced a huge, wrong number (once even landing above the viewport, so
+  // no highlight was visible at all). getBoundingClientRect is relative to
+  // the viewport regardless of positioning context, so diffing it against
+  // the container's own rect gives the right offset unconditionally.
   useEffect(() => {
     if (!activeQuestion || !overlay) return;
     const wrapper = pageWrapperRefs.current.get(activeQuestion.pageIndex);
-    if (!wrapper || !containerRef.current) return;
-    const top = wrapper.offsetTop + overlay.top - 96;
-    containerRef.current.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
+    const container = containerRef.current;
+    if (!wrapper || !container) return;
+    const containerRect = container.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const boxTop = wrapperRect.top - containerRect.top + container.scrollTop + overlay.top;
+    const boxBottom = boxTop + overlay.height;
+    const margin = 32;
+    // Only adjust scroll if the box isn't already fully visible — avoids
+    // fighting a question the user is already looking at, and centers a
+    // short question with a little breathing room rather than jamming it
+    // against the very top of the pane.
+    const viewTop = container.scrollTop;
+    const viewBottom = viewTop + container.clientHeight;
+    if (boxTop < viewTop + margin || boxBottom > viewBottom - margin) {
+      const target = boxTop - Math.max((container.clientHeight - overlay.height) / 2, margin);
+      container.scrollTo({ top: Math.max(target, 0), behavior: 'smooth' });
+    }
   }, [activeQuestion, overlay]);
 
   return (

@@ -9,6 +9,7 @@ import { AnswerKeyGrid } from './AnswerKeyGrid';
 import { ExportBar } from './ExportBar';
 import { Button } from '@/components/ui/Button';
 import type { OptionIndex, Question, QuestionKind } from '@/lib/types';
+import type { ExportMode } from '@/lib/export/xlsx';
 
 type Tab = QuestionKind | 'answerKey';
 
@@ -37,6 +38,9 @@ export function ReviewWorkspace() {
   const newSession = useSessionStore((s) => s.newSession);
   const [activeTab, setActiveTab] = useState<Tab>('straight');
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  // Shared with ExportBar: the same choice drives both what QuestionCard
+  // displays and which text the exported file uses.
+  const [textMode, setTextMode] = useState<ExportMode>('unicode');
   // Lazily seeded from the session at mount: if this session already has
   // questions (revisiting step 4), the workspace should render "done"
   // immediately rather than flashing "loading" and waiting on an effect.
@@ -164,7 +168,7 @@ export function ReviewWorkspace() {
   const countFor = (t: Tab) => (t === 'answerKey' ? answerKeyCount : grouped[t].length);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <header className="border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between">
         <div>
           <p className="text-xs tracking-widest uppercase text-[#767676]">Review</p>
@@ -227,6 +231,7 @@ export function ReviewWorkspace() {
                     key={q.id}
                     question={q}
                     active={q.id === activeQuestionId}
+                    mode={textMode}
                     onSelect={() => setActiveQuestionId(q.id)}
                     onChange={(partial) => updateQuestion(q.id, partial)}
                   />
@@ -245,7 +250,12 @@ export function ReviewWorkspace() {
         </div>
       </div>
 
-      <ExportBar questions={questions} unresolvedCount={session.answerKeyUnresolved.length} />
+      <ExportBar
+        questions={questions}
+        unresolvedCount={session.answerKeyUnresolved.length}
+        mode={textMode}
+        onModeChange={setTextMode}
+      />
     </div>
   );
 }

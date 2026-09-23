@@ -9,12 +9,18 @@ const MODES: { value: ExportMode; label: string }[] = [
   { value: 'legacy', label: 'Legacy font' },
 ];
 
-export function ExportBar({ questions, unresolvedCount }: {
+/**
+ * `mode` is owned by ReviewWorkspace, not this component: it also drives
+ * which text QuestionCard displays (Unicode-converted vs. the original
+ * legacy-encoded bytes), so both need the same selection.
+ */
+export function ExportBar({ questions, unresolvedCount, mode, onModeChange }: {
   questions: Question[];
   unresolvedCount: number;
+  mode: ExportMode;
+  onModeChange: (mode: ExportMode) => void;
 }) {
   const [exporting, setExporting] = useState(false);
-  const [mode, setMode] = useState<ExportMode>('unicode');
   const straightCount = questions.filter((q) => q.kind === 'straight').length;
   const blocked = unresolvedCount > 0;
 
@@ -52,7 +58,7 @@ export function ExportBar({ questions, unresolvedCount }: {
             role="radio"
             aria-checked={mode === value}
             data-testid={`export-mode-${value}`}
-            onClick={() => setMode(value)}
+            onClick={() => onModeChange(value)}
             className={`px-3 py-1.5 text-xs transition-colors ${i === 0 ? '' : 'border-l border-[#E5E5E5]'} ${
               mode === value ? 'bg-[#0A0A0A] text-white' : 'text-[#767676] hover:text-[#0A0A0A]'
             }`}

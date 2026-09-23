@@ -37,6 +37,10 @@ const tokens: Record<string, string> = {
   'w': 'අ', // අ   wxl -> අංක
   'wd': 'ආ', // ආ  wdrlaIs; -> ආරක්ෂිත (අ + ා always reads as the single ආ)
   'we': 'ඇ', // ඇ  we;s -> ඇති, wegiels,s -> ඇටසැකිලි, weúßKs -> ඇවිරිණි
+  'wE': 'ඈ', // ඈ  wE,shdj -> ඈලියාව (Ellalan's dynasty/heritage — the word
+  //              GRADE-10-SINHALA q2 needs). 'w' alone stays අ; only the
+  //              'wE' pair is ඈ, the same pattern as 'wd' -> ආ and
+  //              'we' -> ඇ (independent vowel = 'w' + its dependent sign).
   't': 'එ', // එ   tla tla -> එක එක
   'ft': 'ඓ', // ඓ  ft;sydisl -> ඓතිහාසික (kombuva + එ reads as the single ඓ)
   'T': 'ඔ', // ඔ   Tng -> ඔබට, Tjqka -> ඔවුන්, ueáTre -> මැටිඔරු
@@ -71,6 +75,11 @@ const tokens: Record<string, string> = {
   'N': 'භ', // භ   úNd. -> විභාග, NdKav -> භාණ්ඩ
   'u': 'ම', // ම   udff, -> මාලෛ, uyfika -> මහසෙන්
   'U': 'ඹ', // ඹ   jhU -> වයඹ
+  'ò': 'ඹ', // ඹ   wfòfj, -> අඹෙවෙල (Ambewela) — confirmed by isolating the
+  //              glyph's own bounding box and comparing it pixel-for-pixel
+  //              against the confirmed ඹ in jhU -> වයඹ elsewhere on the same
+  //              page: identical shape. A second redundant ඹ slot,
+  //              alongside 'U'.
   'h': 'ය', // ය   b;sydih -> ඉතිහාසය
   'r': 'ර', // ර   f;dr;=re -> තොරතුරු
   ',': 'ල', // ල   ,xldj -> ලංකාව
@@ -115,6 +124,10 @@ const tokens: Record<string, string> = {
   // FM packs several common consonant+vowel-sign pairs into a single byte in
   // the Latin-1 supplement range. Each maps to two Unicode codepoints.
   'á': `ටි`, // ටි  ueáTre -> මැටිඔරු
+  'ä': `ඩි`, // ඩි  läirlug -> කඩිසරකමට (industriousness, contrasting option
+  //              1's අලසකමට "laziness"), cdähg uQäh jf.a -> ජාඩියට මූඩිය
+  //              වගේ ("like a lid to its jar" — a known Sinhala idiom, read
+  //              directly off the rendered glyph to confirm)
   'Ü': `ට${A}`, // ට්  mÜgk.du -> පට්ටනගාම, flajÜg -> කේවට්ට
   'Ó': 'ථී', // ථී  iaÓr -> ස්ථීර
   'È': 'දි', // දි  ksjerÈ -> නිවැරදි, bkaÈhdfõ -> ඉන්දියාවේ
@@ -187,8 +200,25 @@ const tokens: Record<string, string> = {
   //              before 'à' already supplies the ි), W;a;r fkd§ isàu ->
   //              උත්තර නොදී සිටීම ("remaining without answering" — two
   //              unrelated sentences, same word "සිටීම")
-
-  // --- Nasalized-consonant two-character tokens ---------------------------
+  '¢': 'ඳි', // ඳි  w¢kak -> අඳින්න ("draw"), we¢ -> ඇඳි ("drawn/underlined") —
+  //              two unrelated words, same nasalized-da+i ligature
+  'þ': `ඡ${A}`, // ඡ්  fþoh -> ඡේදය ("paragraph"), fþo -> ඡේද ("paragraphs") —
+  //                 the flushed ෙ prefix immediately followed by this
+  //                 token's own virama combines into ේ, the same mechanism
+  //                 'õ'/'ï'/'Ê' already rely on.
+  '>': 'ඝ', // ඝ   f>daId -> ඝෝෂා ("noise/clamor") — a plain consonant; the
+  //              long-o here comes from the ALREADY-existing 'da' ligature
+  //              (f;da -> තෝ is already a confirmed golden pair), not from
+  //              '>' itself.
+  'J': `න${A}`, // න්  ir;apJø -> සරත්චන්ද්‍ර, completing the "Ediriweera
+  //                 Sarathchandra" name (É and ø, both confirmed earlier in
+  //                 the same name, were the other two gaps in it)
+  'Æ': '!', // !   idlals Æ' -> සාක්කි ! , uefrkjd Æ' -> මැරෙනවා ! — always the
+  //              last word before a sentence-ending quote/period, in
+  //              otherwise-complete sentences; a punctuation remap like the
+  //              existing '@' -> ? and '"' -> , slots, not a letter.
+  'æ': '!', // !   fõjdæ -> වේවා! ("may it be!") — same reading as 'Æ', a
+  //              separate lowercase slot for the same exclamation mark.
   // A leading backtick prenasalizes the consonant byte that follows it — the
   // legacy keyboard's way of reaching the ⁿ-prefixed Sinhala letters that
   // don't have their own dedicated byte the way ඹ ('U') and ඳු ('÷') do.
@@ -237,9 +267,25 @@ const tokens: Record<string, string> = {
   '$': '/', // `ku$ úNd.` renders as "නම/ විභාග"
   '@': '?', // `kulska o@` renders as "නමකින් ද?"
   '²': '•', // the round bullet that opens each instruction line
-  'z': '“', // “  zzl=re,a,dZZ -> "කුරුල්ලා" (doubled for a bolder quote
-  //                 mark), zkg;sZ -> "නටති"
-  'Z': '”', // ”  closing partner of 'z', same evidence
+  'z': '‘', // ‘  single opening quote — zkg;sZ -> ‘නටති’ (a single cited
+  //                 term). Originally mapped to the double “ instead, on the
+  //                 assumption that "zz"/"ZZ" doubled a double-quote mark
+  //                 for emphasis; isolating the glyph's own bounding box and
+  //                 rendering it in isolation instead showed a single
+  //                 apostrophe-like mark, not a double-quote glyph. Doubled
+  //                 zz/ZZ (e.g. zzl=re,a,dZZ -> ‘‘කුරුල්ලා’’) is simply two
+  //                 single quotes in a row — the classic stand-in for a
+  //                 double quote on a font/keyboard with no dedicated key
+  //                 for one — not a distinct doubled-for-emphasis mark.
+  'Z': '’', // ’  closing partner of 'z', same evidence
+  '{': 'ඥ', // ඥ  foaYmd,k{fhl= -> දේශපාලනඥයෙකු ("a politician" — a single
+  //              consonant letter, not a ligature)
+  '_': 'ී', // ී  j._h -> වගීය (confirmed by rendering the glyph directly: a
+  //              long-i vowel sign attached above the preceding consonant,
+  //              with near-zero advance width because it's a combining
+  //              mark overlaying the previous letter rather than a new one).
+  //              A third redundant long-i slot, alongside 'S' and 'ó'
+  //              (which is 'මී', long-i fused with ම specifically).
 };
 
 export const FM_ABHAYA: LegacyMap = {

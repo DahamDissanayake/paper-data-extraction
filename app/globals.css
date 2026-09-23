@@ -27,6 +27,24 @@
 html, body { background: var(--color-page); color: var(--color-ink); }
 .sinhala { font-family: var(--font-sinhala); line-height: 1.8; }
 
+/*
+ * For the "Legacy font" review mode: that mode displays the RAW,
+ * unconverted legacy byte string (e.g. "Y%S ,xldj..."), which is only
+ * readable as Sinhala when rendered through the SAME legacy font the
+ * source PDF itself embeds (here, the FM Abhaya family) — the bytes are
+ * plain ASCII/Latin-1 remapped onto that font's own glyphs, not Unicode.
+ * Using `.sinhala` (a Unicode font) on this text would render the literal
+ * Latin characters instead.
+ *
+ * Neither Malithi nor FM Abhaya is bundled here (they're commercial fonts;
+ * this project only bundles Noto Sans Sinhala and Inter, both open-license
+ * webfonts). This relies on one being already installed as a SYSTEM font,
+ * which is common on Sri Lankan Windows installs. Where neither is present,
+ * the raw legacy bytes fall back to looking like Latin text again, same as
+ * before this rule existed — never worse.
+ */
+.legacy-sinhala { font-family: 'Malithi Web', 'Malithi', 'FMAbhaya', 'FM Abhaya', sans-serif; line-height: 1.8; }
+
 ::selection {
   background: var(--color-ink);
   color: var(--color-page);
